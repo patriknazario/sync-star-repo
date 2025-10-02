@@ -1,4 +1,11 @@
-import { Lead, Vendedora } from '@/data/mockData';
+import { Lead, Vendedora, Curso } from '@/data/mockData';
+
+// Calcula inscrições realizadas de um curso dinamicamente a partir dos leads
+export const getInscricoesCurso = (leads: Lead[], cursoId: number): number => {
+  return leads
+    .filter(l => l.cursoId === cursoId && l.status === 'Inscrição Realizada')
+    .reduce((sum, l) => sum + l.quantidadeInscricoes, 0);
+};
 
 export const calculateComissao = (faturamento: number): number => {
   return faturamento * 0.05;

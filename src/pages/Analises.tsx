@@ -9,7 +9,7 @@ import {
 import { Lead } from '@/data/mockData';
 
 export default function Analises() {
-  const { leads, cursos, vendedoras } = useApp();
+  const { leads, cursos, vendedoras, getInscricoesCurso } = useApp();
 
   // Performance por Estado
   const faturamentoPorEstado = cursos.reduce((acc, curso) => {
@@ -29,8 +29,7 @@ export default function Analises() {
 
   // Performance por Tema
   const faturamentoPorTema = cursos.reduce((acc, curso) => {
-    const leadsDoCurso = leads.filter(l => l.cursoId === curso.id && l.status === 'Inscrição Realizada');
-    const inscricoes = leadsDoCurso.reduce((sum, l) => sum + l.quantidadeInscricoes, 0);
+    const inscricoes = getInscricoesCurso(curso.id);
     
     if (!acc[curso.tema]) {
       acc[curso.tema] = { tema: curso.tema, inscricoes: 0 };

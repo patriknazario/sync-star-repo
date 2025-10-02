@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Curso, Lead, Professor, Vendedora, Cliente, cursos as initialCursos, leads as initialLeads, professores as initialProfessores, vendedoras as initialVendedoras, clientes as initialClientes, metaTotalAnual as initialMetaTotal } from '@/data/mockData';
+import { Curso, Lead, Professor, Vendedora, Cliente, cursos as initialCursos, leads as initialLeads, professores as initialProfessores, vendedoras as initialVendedoras, clientes as initialClientes } from '@/data/mockData';
+import { getInscricoesCurso } from '@/utils/calculations';
 
 interface AppContextType {
   cursos: Curso[];
@@ -8,6 +9,7 @@ interface AppContextType {
   vendedoras: Vendedora[];
   clientes: Cliente[];
   metaTotalAnual: number;
+  getInscricoesCurso: (cursoId: number) => number;
   
   // Cursos
   addCurso: (curso: Omit<Curso, 'id'>) => void;
@@ -62,10 +64,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return stored ? JSON.parse(stored) : initialClientes;
   });
 
-  const [metaTotalAnual, setMetaTotalAnualState] = useState<number>(() => {
-    const stored = localStorage.getItem(`${STORAGE_KEY}-metaTotal`);
-    return stored ? JSON.parse(stored) : initialMetaTotal;
-  });
+  // Meta total é calculada dinamicamente a partir das metas individuais
+  const metaTotalAnual = vendedoras.reduce((sum, v) => sum + v.metaAnual, 0);
 
   // Persist to localStorage
   useEffect(() => {
@@ -88,13 +88,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(`${STORAGE_KEY}-clientes`, JSON.stringify(clientes));
   }, [clientes]);
 
-  useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}-metaTotal`, JSON.stringify(metaTotalAnual));
-  }, [metaTotalAnual]);
+  // Função para obter inscrições de um curso dinamicamente
+  const getCursoInscricoes = (cursoId: number): number => {
+    return getInscricoesCurso(leads, cursoId);
+  };
 
   // Cursos
   const addCurso = (curso: Omit<Curso, 'id'>) => {
-    const newCurso = { ...curso, id: Date.now(), inscricoes: 0 };
+    const newCurso = { ...curso, id: Date.now() };
     setCursos([...cursos, newCurso]);
   };
 
@@ -115,7 +116,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updateLead = (id: number, updates: Partial<Lead>) => {
-    setLeads(leads.map(l => l.id === id ? { ...l, ...updates } : l));
+    setLeads(prevLeads => {
+      return prevLeads.map(l => {
+        if (l.id === id) {
+          const oldLead = l;
+          const newLead = { ...l, ...updates };
+          
+          // Se mudou status de/para "Inscrição Realizada", recalcular será automático
+          // pois usamos getInscricoesCurso que lê o estado atual
+          
+          return newLead;
+        }
+        return l;
+      });
+    });
   };
 
   const deleteLead = (id: number) => {
@@ -123,28 +137,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const moveLeadStatus = (id: number, newStatus: Lead['status'], motivoPerda?: Lead['motivoPerda'], observacoes?: string) => {
-    setLeads(leads.map(l => {
-      if (l.id === id) {
-        const updates: Partial<Lead> = { status: newStatus };
-        
-        if (newStatus === 'Inscrição Realizada') {
-          updates.dataConversao = new Date().toISOString().split('T')[0];
-          updates.motivoPerda = undefined;
+    setLeads(prevLeads => {
+      return prevLeads.map(l => {
+        if (l.id === id) {
+          const updates: Partial<Lead> = { status: newStatus };
           
-          // Incrementar inscrições do curso
-          const curso = cursos.find(c => c.id === l.cursoId);
-          if (curso) {
-            updateCurso(curso.id, { inscricoes: (curso.inscricoes || 0) + l.quantidadeInscricoes });
+          if (newStatus === 'Inscrição Realizada') {
+            updates.dataConversao = new Date().toISOString().split('T')[0];
+            updates.motivoPerda = undefined;
+            // Não precisa mais atualizar manualmente - getInscricoesCurso calcula dinamicamente
+          } else if (newStatus === 'Proposta Declinada') {
+            updates.motivoPerda = motivoPerda;
+            updates.observacoes = observacoes;
           }
-        } else if (newStatus === 'Proposta Declinada') {
-          updates.motivoPerda = motivoPerda;
-          updates.observacoes = observacoes;
+          
+          return { ...l, ...updates };
         }
-        
-        return { ...l, ...updates };
-      }
-      return l;
-    }));
+        return l;
+      });
+    });
   };
 
   // Professores
@@ -164,10 +175,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Vendedoras
   const updateVendedoraMeta = (id: number, metaMensal: number, metaAnual: number) => {
     setVendedoras(vendedoras.map(v => v.id === id ? { ...v, metaMensal, metaAnual } : v));
+    // metaTotalAnual é recalculado automaticamente como campo derivado
   };
 
   const setMetaTotalAnual = (meta: number) => {
-    setMetaTotalAnualState(meta);
+    // Distribuir a meta proporcionalmente entre as vendedoras
+    const totalAtual = vendedoras.reduce((sum, v) => sum + v.metaAnual, 0);
+    if (totalAtual === 0) return;
+    
+    const fator = meta / totalAtual;
+    setVendedoras(vendedoras.map(v => ({
+      ...v,
+      metaAnual: Math.round(v.metaAnual * fator),
+      metaMensal: Math.round((v.metaAnual * fator) / 12)
+    })));
   };
 
   const value = {
@@ -177,6 +198,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     vendedoras,
     clientes,
     metaTotalAnual,
+    getInscricoesCurso: getCursoInscricoes,
     addCurso,
     updateCurso,
     deleteCurso,

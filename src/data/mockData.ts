@@ -32,7 +32,7 @@ export interface Curso {
   valorInscricao: number;
   descricao: string;
   status: 'Planejado' | 'Inscrições Abertas' | 'Em Andamento' | 'Concluído' | 'Cancelado';
-  inscricoes: number;
+  // inscricoes é calculado dinamicamente via getInscricoesCurso
 }
 
 export interface Lead {
@@ -162,8 +162,7 @@ export const cursos: Curso[] = [
     cargaHoraria: 24,
     valorInscricao: 1200,
     descricao: "Curso completo sobre o processo licitatório e gestão de contratos públicos",
-    status: "Inscrições Abertas",
-    inscricoes: 18
+    status: "Inscrições Abertas"
   },
   {
     id: 2,
@@ -176,8 +175,7 @@ export const cursos: Curso[] = [
     cargaHoraria: 20,
     valorInscricao: 980,
     descricao: "Estratégias modernas de gestão de pessoas aplicadas ao setor público",
-    status: "Inscrições Abertas",
-    inscricoes: 12
+    status: "Inscrições Abertas"
   },
   {
     id: 3,
@@ -190,8 +188,7 @@ export const cursos: Curso[] = [
     cargaHoraria: 24,
     valorInscricao: 1150,
     descricao: "Elaboração e gestão do orçamento público com foco em eficiência",
-    status: "Inscrições Abertas",
-    inscricoes: 22
+    status: "Inscrições Abertas"
   },
   {
     id: 4,
@@ -204,8 +201,7 @@ export const cursos: Curso[] = [
     cargaHoraria: 20,
     valorInscricao: 1050,
     descricao: "Programas de integridade e compliance aplicados ao setor público",
-    status: "Planejado",
-    inscricoes: 0
+    status: "Planejado"
   },
   {
     id: 5,
@@ -218,8 +214,7 @@ export const cursos: Curso[] = [
     cargaHoraria: 24,
     valorInscricao: 1180,
     descricao: "Metodologias ágeis e tradicionais aplicadas a projetos governamentais",
-    status: "Em Andamento",
-    inscricoes: 25
+    status: "Em Andamento"
   },
   {
     id: 6,
@@ -232,8 +227,7 @@ export const cursos: Curso[] = [
     cargaHoraria: 20,
     valorInscricao: 1100,
     descricao: "Técnicas de auditoria e controladoria para gestores públicos",
-    status: "Concluído",
-    inscricoes: 30
+    status: "Concluído"
   }
 ];
 
@@ -347,4 +341,4 @@ export const clientes: Cliente[] = [
   }
 ];
 
-export const metaTotalAnual = 5500000;
+// metaTotalAnual agora é calculado dinamicamente como soma das metas das vendedoras

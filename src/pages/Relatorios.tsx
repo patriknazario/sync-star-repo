@@ -5,7 +5,7 @@ import { FileDown, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Relatorios() {
-  const { cursos, leads } = useApp();
+  const { cursos, leads, getInscricoesCurso } = useApp();
 
   const handleExportRelatorio = (tipo: string) => {
     toast.success(`Relatório de ${tipo} gerado com sucesso!`, {
@@ -120,7 +120,7 @@ export default function Relatorios() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-accent">{curso.inscricoes} inscrições</p>
+                      <p className="text-sm font-medium text-accent">{getInscricoesCurso(curso.id)} inscrições</p>
                       <p className="text-xs text-muted-foreground">{curso.status}</p>
                     </div>
                   </div>

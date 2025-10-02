@@ -4,6 +4,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { Curso, Professor } from '@/data/mockData';
 import { Calendar, MapPin, User, Users, AlertTriangle, Plus, Edit } from 'lucide-react';
 import { formatDate, shouldShowViabilityAlert } from '@/utils/calculations';
+import { useApp } from '@/contexts/AppContext';
 
 interface CursoCardProps {
   curso: Curso;
@@ -13,7 +14,9 @@ interface CursoCardProps {
 }
 
 export function CursoCard({ curso, professor, onAddLead, onEdit }: CursoCardProps) {
-  const showAlert = shouldShowViabilityAlert(curso.inscricoes, curso.dataInicio);
+  const { getInscricoesCurso } = useApp();
+  const inscricoes = getInscricoesCurso(curso.id);
+  const showAlert = shouldShowViabilityAlert(inscricoes, curso.dataInicio);
 
   return (
     <Card className={`p-6 hover:shadow-lg transition-all ${showAlert ? 'border-warning border-2' : ''}`}>
@@ -22,7 +25,7 @@ export function CursoCard({ curso, professor, onAddLead, onEdit }: CursoCardProp
           <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
           <div className="text-sm">
             <p className="font-semibold text-warning">Atenção: Viabilidade em risco!</p>
-            <p className="text-muted-foreground">Apenas {curso.inscricoes} inscrições confirmadas</p>
+            <p className="text-muted-foreground">Apenas {inscricoes} inscrições confirmadas</p>
           </div>
         </div>
       )}
@@ -52,7 +55,7 @@ export function CursoCard({ curso, professor, onAddLead, onEdit }: CursoCardProp
         
         <div className="flex items-center text-sm text-foreground font-semibold">
           <Users className="h-4 w-4 mr-2 text-accent" />
-          <span>{curso.inscricoes} inscrições confirmadas</span>
+          <span>{inscricoes} inscrições confirmadas</span>
         </div>
       </div>
 

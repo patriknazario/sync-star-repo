@@ -28,7 +28,7 @@ import { toast } from 'sonner';
 const estados = ['SP', 'RJ', 'MG', 'DF', 'BA', 'CE', 'PE', 'PR', 'RS', 'SC', 'GO', 'AM', 'PA'];
 
 export default function Cursos() {
-  const { cursos, professores, addCurso, updateCurso, deleteCurso } = useApp();
+  const { cursos, professores, addCurso, updateCurso, deleteCurso, getInscricoesCurso } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
