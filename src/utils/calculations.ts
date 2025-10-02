@@ -1,0 +1,85 @@
+import { Lead, Vendedora } from '@/data/mockData';
+
+export const calculateComissao = (faturamento: number): number => {
+  return faturamento * 0.05;
+};
+
+export const calculateFaturamentoByVendedora = (leads: Lead[], vendedoraId: number): number => {
+  return leads
+    .filter(l => l.vendedoraId === vendedoraId && l.status === 'Inscrição Realizada')
+    .reduce((sum, l) => sum + l.valorProposta, 0);
+};
+
+export const calculateInscricoesByVendedora = (leads: Lead[], vendedoraId: number): number => {
+  return leads
+    .filter(l => l.vendedoraId === vendedoraId && l.status === 'Inscrição Realizada')
+    .reduce((sum, l) => sum + l.quantidadeInscricoes, 0);
+};
+
+export const calculateTotalFaturamento = (leads: Lead[]): number => {
+  return leads
+    .filter(l => l.status === 'Inscrição Realizada')
+    .reduce((sum, l) => sum + l.valorProposta, 0);
+};
+
+export const calculateTotalInscricoes = (leads: Lead[]): number => {
+  return leads
+    .filter(l => l.status === 'Inscrição Realizada')
+    .reduce((sum, l) => sum + l.quantidadeInscricoes, 0);
+};
+
+export const calculateReceitaPotencial = (leads: Lead[]): number => {
+  return leads
+    .filter(l => l.status === 'Proposta Enviada')
+    .reduce((sum, l) => sum + l.valorProposta, 0);
+};
+
+export const calculateTaxaConversao = (leads: Lead[]): number => {
+  const total = leads.filter(l => l.status !== 'Proposta Enviada').length;
+  const convertidos = leads.filter(l => l.status === 'Inscrição Realizada').length;
+  return total > 0 ? (convertidos / total) * 100 : 0;
+};
+
+export const calculateCicloVendas = (leads: Lead[]): number => {
+  const convertidos = leads.filter(l => l.status === 'Inscrição Realizada' && l.dataConversao);
+  
+  if (convertidos.length === 0) return 0;
+  
+  const totalDias = convertidos.reduce((sum, l) => {
+    const cadastro = new Date(l.dataCadastro);
+    const conversao = new Date(l.dataConversao!);
+    const diff = Math.floor((conversao.getTime() - cadastro.getTime()) / (1000 * 60 * 60 * 24));
+    return sum + diff;
+  }, 0);
+  
+  return totalDias / convertidos.length;
+};
+
+export const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
+export const formatNumber = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR').format(value);
+};
+
+export const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('pt-BR').format(date);
+};
+
+export const getDaysUntil = (dateString: string): number => {
+  const target = new Date(dateString);
+  const today = new Date();
+  const diff = target.getTime() - today.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+};
+
+export const shouldShowViabilityAlert = (inscricoes: number, dataInicio: string): boolean => {
+  return inscricoes < 15 && getDaysUntil(dataInicio) <= 7;
+};
