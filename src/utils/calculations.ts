@@ -80,6 +80,39 @@ export const formatDate = (dateString: string): string => {
   return new Intl.DateTimeFormat('pt-BR').format(date);
 };
 
+// Validações
+export const validateEmail = (email: string): boolean => {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email);
+};
+
+export const validateTelefone = (telefone: string): boolean => {
+  const regex = /^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/;
+  return regex.test(telefone);
+};
+
+export const validateDates = (dataInicio: string, dataTermino: string): { valid: boolean; message?: string } => {
+  if (!dataInicio || !dataTermino) {
+    return { valid: false, message: 'Datas são obrigatórias' };
+  }
+  
+  const inicio = new Date(dataInicio);
+  const termino = new Date(dataTermino);
+  
+  if (termino < inicio) {
+    return { valid: false, message: 'Data de término deve ser posterior à data de início' };
+  }
+  
+  return { valid: true };
+};
+
+export const validatePositiveNumber = (value: number, fieldName: string): { valid: boolean; message?: string } => {
+  if (value <= 0) {
+    return { valid: false, message: `${fieldName} deve ser maior que zero` };
+  }
+  return { valid: true };
+};
+
 export const getDaysUntil = (dateString: string): number => {
   const target = new Date(dateString);
   const today = new Date();

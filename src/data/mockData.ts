@@ -317,28 +317,5 @@ export const leads: Lead[] = [
   }
 ];
 
-export const clientes: Cliente[] = [
-  {
-    id: 1,
-    orgao: "Prefeitura Municipal de Campinas",
-    cidade: "Campinas",
-    estado: "SP",
-    contatos: [
-      {
-        nome: "João Pereira",
-        cargo: "Diretor de Finanças",
-        telefone: "(19) 3234-5678",
-        email: "joao@campinas.gov.br"
-      }
-    ],
-    historicoCursos: [
-      { cursoId: 1, data: "2024-03-10", valor: 3600 },
-      { cursoId: 6, data: "2024-08-15", valor: 4400 }
-    ],
-    totalGasto: 8000,
-    ultimaCompra: "2024-08-15",
-    recorrente: true
-  }
-];
-
-// metaTotalAnual agora é calculado dinamicamente como soma das metas das vendedoras
+// Clientes são agora calculados dinamicamente a partir dos leads convertidos
+// A interface Cliente permanece para tipagem, mas não há dados mock iniciais

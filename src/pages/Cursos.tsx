@@ -22,7 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import { Curso } from '@/data/mockData';
 import { StatusBadge } from '@/components/common/StatusBadge';
-import { formatDate, formatCurrency } from '@/utils/calculations';
+import { formatDate, formatCurrency, validateDates, validatePositiveNumber } from '@/utils/calculations';
 import { toast } from 'sonner';
 
 const estados = ['SP', 'RJ', 'MG', 'DF', 'BA', 'CE', 'PE', 'PR', 'RS', 'SC', 'GO', 'AM', 'PA'];
@@ -36,9 +36,9 @@ export default function Cursos() {
   
   const [formData, setFormData] = useState<Partial<Curso>>({
     tema: '',
-    professorId: 0,
+    professorId: professores[0]?.id || 0,
     cidade: '',
-    estado: '',
+    estado: 'SP',
     dataInicio: '',
     dataTermino: '',
     cargaHoraria: 0,
@@ -83,6 +83,30 @@ export default function Cursos() {
     if (!formData.tema || !formData.cidade || !formData.estado || !formData.dataInicio || !formData.dataTermino) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
+    }
+
+    // Validar datas
+    const dateValidation = validateDates(formData.dataInicio, formData.dataTermino);
+    if (!dateValidation.valid) {
+      toast.error(dateValidation.message!);
+      return;
+    }
+
+    // Validar valores numéricos positivos
+    if (formData.valorInscricao) {
+      const valorValidation = validatePositiveNumber(formData.valorInscricao, 'Valor da inscrição');
+      if (!valorValidation.valid) {
+        toast.error(valorValidation.message!);
+        return;
+      }
+    }
+
+    if (formData.cargaHoraria) {
+      const cargaValidation = validatePositiveNumber(formData.cargaHoraria, 'Carga horária');
+      if (!cargaValidation.valid) {
+        toast.error(cargaValidation.message!);
+        return;
+      }
     }
 
     if (editingCurso) {

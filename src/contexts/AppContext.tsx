@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Curso, Lead, Professor, Vendedora, Cliente, cursos as initialCursos, leads as initialLeads, professores as initialProfessores, vendedoras as initialVendedoras, clientes as initialClientes } from '@/data/mockData';
+import { Curso, Lead, Professor, Vendedora, Cliente, cursos as initialCursos, leads as initialLeads, professores as initialProfessores, vendedoras as initialVendedoras } from '@/data/mockData';
 import { getInscricoesCurso } from '@/utils/calculations';
 
 interface AppContextType {
@@ -59,10 +59,60 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return stored ? JSON.parse(stored) : initialVendedoras;
   });
 
-  const [clientes, setClientes] = useState<Cliente[]>(() => {
-    const stored = localStorage.getItem(`${STORAGE_KEY}-clientes`);
-    return stored ? JSON.parse(stored) : initialClientes;
-  });
+  // Clientes não são mais armazenados, são derivados dos leads
+  const extractClientesFromLeads = (): Cliente[] => {
+    const clientesMap = new Map<string, Cliente>();
+    
+    leads
+      .filter(l => l.status === 'Inscrição Realizada')
+      .forEach(lead => {
+        const key = lead.orgao.toLowerCase();
+        
+        if (clientesMap.has(key)) {
+          const cliente = clientesMap.get(key)!;
+          cliente.historicoCursos.push({
+            cursoId: lead.cursoId,
+            data: lead.dataConversao!,
+            valor: lead.valorProposta,
+          });
+          cliente.totalGasto += lead.valorProposta;
+          if (lead.dataConversao! > cliente.ultimaCompra) {
+            cliente.ultimaCompra = lead.dataConversao!;
+          }
+        } else {
+          clientesMap.set(key, {
+            id: Date.now() + Math.random(),
+            orgao: lead.orgao,
+            cidade: lead.cidade,
+            estado: lead.estado,
+            contatos: [{
+              nome: lead.nomeResponsavel,
+              cargo: lead.setor || '',
+              telefone: lead.telefone || '',
+              email: lead.email || '',
+            }],
+            historicoCursos: [{
+              cursoId: lead.cursoId,
+              data: lead.dataConversao!,
+              valor: lead.valorProposta,
+            }],
+            totalGasto: lead.valorProposta,
+            ultimaCompra: lead.dataConversao!,
+            recorrente: false,
+          });
+        }
+      });
+    
+    // Identificar clientes recorrentes (2+ cursos)
+    const clientes = Array.from(clientesMap.values());
+    clientes.forEach(cliente => {
+      cliente.recorrente = cliente.historicoCursos.length >= 2;
+    });
+    
+    return clientes;
+  };
+
+  const clientes = extractClientesFromLeads();
 
   // Meta total é calculada dinamicamente a partir das metas individuais
   const metaTotalAnual = vendedoras.reduce((sum, v) => sum + v.metaAnual, 0);
@@ -84,9 +134,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(`${STORAGE_KEY}-vendedoras`, JSON.stringify(vendedoras));
   }, [vendedoras]);
 
-  useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}-clientes`, JSON.stringify(clientes));
-  }, [clientes]);
+  // Clientes não são mais persistidos pois são derivados dinamicamente
 
   // Função para obter inscrições de um curso dinamicamente
   const getCursoInscricoes = (cursoId: number): number => {

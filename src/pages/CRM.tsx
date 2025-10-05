@@ -22,7 +22,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Building, MapPin, DollarSign } from 'lucide-react';
 import { Lead } from '@/data/mockData';
-import { formatCurrency } from '@/utils/calculations';
+import { formatCurrency, validateEmail, validateTelefone } from '@/utils/calculations';
 import { toast } from 'sonner';
 
 const estados = ['SP', 'RJ', 'MG', 'DF', 'BA', 'CE', 'PE', 'PR', 'RS', 'SC', 'GO', 'AM', 'PA'];
@@ -40,7 +40,7 @@ export default function CRM() {
   const [observacoes, setObservacoes] = useState('');
 
   const [formData, setFormData] = useState<Partial<Lead>>({
-    cursoId: 0,
+    cursoId: cursos[0]?.id || 0,
     nomeResponsavel: '',
     orgao: '',
     setor: '',
@@ -50,7 +50,7 @@ export default function CRM() {
     email: '',
     quantidadeInscricoes: 1,
     valorProposta: 0,
-    vendedoraId: 1,
+    vendedoraId: vendedoras[0]?.id || 1,
     status: 'Proposta Enviada',
     dataCadastro: new Date().toISOString().split('T')[0],
   });
@@ -92,6 +92,18 @@ export default function CRM() {
   const handleSave = () => {
     if (!formData.nomeResponsavel || !formData.orgao || !formData.cidade) {
       toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    // Validar email se preenchido
+    if (formData.email && !validateEmail(formData.email)) {
+      toast.error('Email inválido');
+      return;
+    }
+
+    // Validar telefone se preenchido
+    if (formData.telefone && !validateTelefone(formData.telefone)) {
+      toast.error('Telefone inválido. Use o formato (11) 98765-4321');
       return;
     }
 
