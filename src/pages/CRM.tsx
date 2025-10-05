@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ const estados = ['SP', 'RJ', 'MG', 'DF', 'BA', 'CE', 'PE', 'PR', 'RS', 'SC', 'GO
 
 export default function CRM() {
   const { leads, cursos, vendedoras, addLead, updateLead, deleteLead, moveLeadStatus } = useApp();
+  const [searchParams] = useSearchParams();
   const [selectedCurso, setSelectedCurso] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -54,6 +56,35 @@ export default function CRM() {
     status: 'Proposta Enviada',
     dataCadastro: new Date().toISOString().split('T')[0],
   });
+
+  // Auto-abrir dialog quando vem do Dashboard com curso pré-selecionado
+  useEffect(() => {
+    const cursoIdFromUrl = searchParams.get('curso');
+    if (cursoIdFromUrl) {
+      const cursoId = Number(cursoIdFromUrl);
+      setSelectedCurso(cursoId);
+      
+      const curso = cursos.find(c => c.id === cursoId);
+      if (curso) {
+        setFormData({
+          cursoId,
+          nomeResponsavel: '',
+          orgao: '',
+          setor: '',
+          cidade: '',
+          estado: 'SP',
+          telefone: '',
+          email: '',
+          quantidadeInscricoes: 1,
+          valorProposta: curso.valorInscricao,
+          vendedoraId: vendedoras[0]?.id || 1,
+          status: 'Proposta Enviada',
+          dataCadastro: new Date().toISOString().split('T')[0],
+        });
+        setIsDialogOpen(true);
+      }
+    }
+  }, [searchParams, cursos, vendedoras]);
 
   const cursoSelecionado = selectedCurso ? cursos.find(c => c.id === selectedCurso) : null;
   const leadsDoCurso = leads.filter(l => l.cursoId === selectedCurso);
