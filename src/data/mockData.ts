@@ -77,16 +77,17 @@ export interface Cliente {
 }
 
 export const vendedoras: Vendedora[] = [
-  { id: 1, nome: "Ana Silva", metaMensal: 50000, metaAnual: 600000 },
-  { id: 2, nome: "Beatriz Costa", metaMensal: 45000, metaAnual: 540000 },
-  { id: 3, nome: "Carla Mendes", metaMensal: 48000, metaAnual: 576000 },
-  { id: 4, nome: "Diana Oliveira", metaMensal: 42000, metaAnual: 504000 },
-  { id: 5, nome: "Eduarda Santos", metaMensal: 46000, metaAnual: 552000 },
-  { id: 6, nome: "Fernanda Lima", metaMensal: 44000, metaAnual: 528000 },
-  { id: 7, nome: "Gabriela Rocha", metaMensal: 47000, metaAnual: 564000 },
-  { id: 8, nome: "Helena Martins", metaMensal: 43000, metaAnual: 516000 },
-  { id: 9, nome: "Isabela Ferreira", metaMensal: 45000, metaAnual: 540000 },
-  { id: 10, nome: "Juliana Alves", metaMensal: 49000, metaAnual: 588000 },
+  { id: 1, nome: "Ariane", metaMensal: 50000, metaAnual: 600000 },
+  { id: 2, nome: "Elis", metaMensal: 45000, metaAnual: 540000 },
+  { id: 3, nome: "Viviane", metaMensal: 48000, metaAnual: 576000 },
+  { id: 4, nome: "Ana", metaMensal: 42000, metaAnual: 504000 },
+  { id: 5, nome: "Najara", metaMensal: 46000, metaAnual: 552000 },
+  { id: 6, nome: "Halana", metaMensal: 44000, metaAnual: 528000 },
+  { id: 7, nome: "Elaine", metaMensal: 47000, metaAnual: 564000 },
+  { id: 8, nome: "Andreia", metaMensal: 43000, metaAnual: 516000 },
+  { id: 9, nome: "Fulana", metaMensal: 45000, metaAnual: 540000 },
+  { id: 10, nome: "Ciclana", metaMensal: 49000, metaAnual: 588000 },
+  { id: 11, nome: "Beltrana", metaMensal: 44000, metaAnual: 528000 },
 ];
 
 export const professores: Professor[] = [

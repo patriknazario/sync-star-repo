@@ -29,14 +29,14 @@ export default function Performance() {
     const faturamento = calculateFaturamentoByVendedora(leads, vendedora.id);
     const inscricoes = calculateInscricoesByVendedora(leads, vendedora.id);
     const comissao = calculateComissao(faturamento);
-    const atingimento = vendedora.metaAnual > 0 ? (faturamento / vendedora.metaAnual) * 100 : 0;
+    const progressao = vendedora.metaAnual > 0 ? (faturamento / vendedora.metaAnual) * 100 : 0;
 
     return {
       ...vendedora,
       faturamento,
       inscricoes,
       comissao,
-      atingimento,
+      progressao,
     };
   }).sort((a, b) => b.faturamento - a.faturamento);
 
@@ -98,7 +98,7 @@ export default function Performance() {
           />
           
           <KPICard
-            title="Atingimento"
+            title="Progressão"
             value={`${((totalFaturamento / metaTotal) * 100).toFixed(1)}%`}
             icon={Trophy}
             variant="default"
@@ -145,12 +145,12 @@ export default function Performance() {
                       </div>
 
                       {/* Nome */}
-                      <div className="flex-1">
+                      <div className="w-48">
                         <h3 className="text-lg font-bold text-foreground">{vendedora.nome}</h3>
                       </div>
 
                       {/* Métricas */}
-                      <div className="hidden md:grid grid-cols-5 gap-6 flex-1">
+                      <div className="hidden md:grid grid-cols-5 gap-4 flex-1">
                         <div>
                           <p className="text-xs text-muted-foreground">Inscrições</p>
                           <p className="text-lg font-semibold">{vendedora.inscricoes}</p>
@@ -178,8 +178,8 @@ export default function Performance() {
                         </div>
 
                         <div>
-                          <p className="text-xs text-muted-foreground">Atingimento</p>
-                          <div className="w-32">
+                          <p className="text-xs text-muted-foreground">Progressão</p>
+                          <div className="w-40">
                             <ProgressBar
                               current={vendedora.faturamento}
                               target={vendedora.metaAnual}
