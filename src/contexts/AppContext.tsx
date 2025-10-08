@@ -70,16 +70,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         
         if (clientesMap.has(key)) {
           const cliente = clientesMap.get(key)!;
+          const valorFinal = lead.valorNegociado ?? lead.valorProposta;
           cliente.historicoCursos.push({
             cursoId: lead.cursoId,
             data: lead.dataConversao!,
-            valor: lead.valorProposta,
+            valor: valorFinal,
           });
-          cliente.totalGasto += lead.valorProposta;
+          cliente.totalGasto += valorFinal;
           if (lead.dataConversao! > cliente.ultimaCompra) {
             cliente.ultimaCompra = lead.dataConversao!;
           }
         } else {
+          const valorFinal = lead.valorNegociado ?? lead.valorProposta;
           clientesMap.set(key, {
             id: Date.now() + Math.random(),
             orgao: lead.orgao,
@@ -94,9 +96,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             historicoCursos: [{
               cursoId: lead.cursoId,
               data: lead.dataConversao!,
-              valor: lead.valorProposta,
+              valor: valorFinal,
             }],
-            totalGasto: lead.valorProposta,
+            totalGasto: valorFinal,
             ultimaCompra: lead.dataConversao!,
             recorrente: false,
           });

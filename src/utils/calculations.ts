@@ -14,7 +14,7 @@ export const calculateComissao = (faturamento: number): number => {
 export const calculateFaturamentoByVendedora = (leads: Lead[], vendedoraId: number): number => {
   return leads
     .filter(l => l.vendedoraId === vendedoraId && l.status === 'Inscrição Realizada')
-    .reduce((sum, l) => sum + l.valorProposta, 0);
+    .reduce((sum, l) => sum + (l.valorNegociado ?? l.valorProposta), 0);
 };
 
 export const calculateInscricoesByVendedora = (leads: Lead[], vendedoraId: number): number => {
@@ -26,7 +26,7 @@ export const calculateInscricoesByVendedora = (leads: Lead[], vendedoraId: numbe
 export const calculateTotalFaturamento = (leads: Lead[]): number => {
   return leads
     .filter(l => l.status === 'Inscrição Realizada')
-    .reduce((sum, l) => sum + l.valorProposta, 0);
+    .reduce((sum, l) => sum + (l.valorNegociado ?? l.valorProposta), 0);
 };
 
 export const calculateTotalInscricoes = (leads: Lead[]): number => {
@@ -38,7 +38,7 @@ export const calculateTotalInscricoes = (leads: Lead[]): number => {
 export const calculateReceitaPotencial = (leads: Lead[]): number => {
   return leads
     .filter(l => l.status === 'Proposta Enviada')
-    .reduce((sum, l) => sum + l.valorProposta, 0);
+    .reduce((sum, l) => sum + (l.valorNegociado ?? l.valorProposta), 0);
 };
 
 export const calculateTaxaConversao = (leads: Lead[]): number => {

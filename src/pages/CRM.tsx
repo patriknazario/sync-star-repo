@@ -21,7 +21,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Building, MapPin, DollarSign } from 'lucide-react';
+import { Plus, Edit, Trash2, Building, MapPin, DollarSign, TrendingDown, AlertCircle } from 'lucide-react';
 import { Lead } from '@/data/mockData';
 import { formatCurrency, validateEmail, validateTelefone } from '@/utils/calculations';
 import { toast } from 'sonner';
@@ -222,8 +222,30 @@ export default function CRM() {
             <span className="font-semibold">{lead.quantidadeInscricoes}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Valor Proposta:</span>
-            <span className="font-semibold text-accent">{formatCurrency(lead.valorProposta)}</span>
+            <span className="text-muted-foreground">Valor:</span>
+            <div className="text-right">
+              {lead.valorNegociado ? (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-accent text-base">
+                      {formatCurrency(lead.valorNegociado)}
+                    </span>
+                    {lead.valorNegociado < lead.valorProposta && (
+                      <span className="text-xs font-semibold text-success bg-success/10 px-2 py-0.5 rounded">
+                        -{(((lead.valorProposta - lead.valorNegociado) / lead.valorProposta) * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                  {lead.valorNegociado !== lead.valorProposta && (
+                    <div className="text-xs text-muted-foreground line-through">
+                      {formatCurrency(lead.valorProposta)}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <span className="font-semibold text-accent">{formatCurrency(lead.valorProposta)}</span>
+              )}
+            </div>
           </div>
           <div className="text-xs text-muted-foreground">
             Vendedora: {vendedora?.nome}
@@ -478,9 +500,62 @@ export default function CRM() {
               />
             </div>
 
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-semibold">Valor da Proposta</p>
-              <p className="text-2xl font-bold text-accent">{formatCurrency(formData.valorProposta || 0)}</p>
+            {/* Seção de Valores */}
+            <div className="space-y-4 p-4 bg-muted rounded-lg">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Valor Padrão */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Valor da Proposta (Padrão)</Label>
+                  <p className="text-lg font-bold text-foreground">
+                    {formatCurrency(formData.valorProposta || 0)}
+                  </p>
+                </div>
+
+                {/* Valor Negociado */}
+                <div>
+                  <Label htmlFor="valorNegociado">Valor Negociado (Opcional)</Label>
+                  <Input
+                    id="valorNegociado"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Deixe vazio para usar valor padrão"
+                    value={formData.valorNegociado || ''}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      valorNegociado: e.target.value ? Number(e.target.value) : undefined 
+                    })}
+                  />
+                </div>
+              </div>
+
+              {/* Indicador de Desconto */}
+              {formData.valorNegociado && formData.valorNegociado < (formData.valorProposta || 0) && (
+                <div className="flex items-center justify-between p-3 bg-success/10 border border-success/20 rounded">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown className="h-4 w-4 text-success" />
+                    <span className="text-sm font-semibold text-success">Desconto Aplicado</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-success">
+                      {(((formData.valorProposta || 0) - formData.valorNegociado) / (formData.valorProposta || 0) * 100).toFixed(1)}%
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Economia: {formatCurrency((formData.valorProposta || 0) - formData.valorNegociado)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Alerta se valor negociado for maior */}
+              {formData.valorNegociado && formData.valorNegociado > (formData.valorProposta || 0) && (
+                <div className="flex items-center gap-2 p-3 bg-warning/10 border border-warning/20 rounded">
+                  <AlertCircle className="h-4 w-4 text-warning" />
+                  <span className="text-sm text-warning">
+                    Valor negociado está acima do padrão (+{(((formData.valorNegociado - (formData.valorProposta || 0)) / (formData.valorProposta || 0)) * 100).toFixed(1)}%)
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

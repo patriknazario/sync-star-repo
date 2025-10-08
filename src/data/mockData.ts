@@ -47,6 +47,7 @@ export interface Lead {
   email: string;
   quantidadeInscricoes: number;
   valorProposta: number;
+  valorNegociado?: number;
   vendedoraId: number;
   status: 'Proposta Enviada' | 'Inscrição Realizada' | 'Proposta Declinada';
   dataCadastro: string;
@@ -245,6 +246,7 @@ export const leads: Lead[] = [
     email: "joao.pereira@campinas.sp.gov.br",
     quantidadeInscricoes: 3,
     valorProposta: 3600,
+    valorNegociado: 3200,
     vendedoraId: 1,
     status: "Proposta Enviada",
     dataCadastro: "2025-09-15"
@@ -295,6 +297,7 @@ export const leads: Lead[] = [
     email: "ana.costa@rj.gov.br",
     quantidadeInscricoes: 4,
     valorProposta: 4600,
+    valorNegociado: 4100,
     vendedoraId: 1,
     status: "Inscrição Realizada",
     dataCadastro: "2025-09-12",
