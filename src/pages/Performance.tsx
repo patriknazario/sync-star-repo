@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { KPICard } from '@/components/common/KPICard';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import { Card } from '@/components/ui/card';
-import { Trophy, TrendingUp, DollarSign, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Trophy, TrendingUp, DollarSign, Users, Edit2, Check } from 'lucide-react';
 import {
   calculateFaturamentoByVendedora,
   calculateInscricoesByVendedora,
@@ -14,7 +17,9 @@ import {
 import { Vendedora } from '@/data/mockData';
 
 export default function Performance() {
-  const { leads, vendedoras } = useApp();
+  const { leads, vendedoras, updateVendedoraMeta } = useApp();
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editValues, setEditValues] = useState({ metaMensal: 0, metaAnual: 0 });
 
   const totalFaturamento = calculateTotalFaturamento(leads);
   const totalInscricoes = calculateTotalInscricoes(leads);
@@ -34,6 +39,19 @@ export default function Performance() {
       progressao,
     };
   }).sort((a, b) => b.faturamento - a.faturamento);
+
+  const handleEdit = (vendedora: Vendedora) => {
+    setEditingId(vendedora.id);
+    setEditValues({
+      metaMensal: vendedora.metaMensal,
+      metaAnual: vendedora.metaAnual,
+    });
+  };
+
+  const handleSave = (id: number) => {
+    updateVendedoraMeta(id, editValues.metaMensal, editValues.metaAnual);
+    setEditingId(null);
+  };
 
   const getMedalIcon = (position: number) => {
     switch (position) {
@@ -106,6 +124,7 @@ export default function Performance() {
 
           <div className="space-y-4">
             {vendedorasComPerformance.map((vendedora, index) => {
+              const isEditing = editingId === vendedora.id;
               const medal = getMedalIcon(index);
               const isTop3 = index < 3;
 
@@ -131,7 +150,7 @@ export default function Performance() {
                       </div>
 
                       {/* Métricas */}
-                      <div className="hidden md:grid grid-cols-4 gap-4 flex-1">
+                      <div className="hidden md:grid grid-cols-5 gap-4 flex-1">
                         <div>
                           <p className="text-xs text-muted-foreground">Inscrições</p>
                           <p className="text-lg font-semibold">{vendedora.inscricoes}</p>
@@ -142,6 +161,20 @@ export default function Performance() {
                           <p className="text-lg font-semibold text-accent">
                             {formatCurrency(vendedora.faturamento)}
                           </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-muted-foreground">Meta</p>
+                          {isEditing ? (
+                            <Input
+                              type="number"
+                              value={editValues.metaAnual}
+                              onChange={(e) => setEditValues({ ...editValues, metaAnual: Number(e.target.value) })}
+                              className="h-8 text-sm"
+                            />
+                          ) : (
+                            <p className="text-lg font-semibold">{formatCurrency(vendedora.metaAnual)}</p>
+                          )}
                         </div>
 
                         <div>
@@ -163,6 +196,27 @@ export default function Performance() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Botão Editar */}
+                    <div className="ml-4">
+                      {isEditing ? (
+                        <Button
+                          onClick={() => handleSave(vendedora.id)}
+                          size="sm"
+                          className="bg-success hover:bg-success/90"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => handleEdit(vendedora)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Mobile View */}
@@ -174,6 +228,10 @@ export default function Performance() {
                     <div>
                       <p className="text-xs text-muted-foreground">Faturamento</p>
                       <p className="font-semibold text-accent">{formatCurrency(vendedora.faturamento)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Meta</p>
+                      <p className="font-semibold">{formatCurrency(vendedora.metaAnual)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Comissão</p>
