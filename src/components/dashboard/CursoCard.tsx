@@ -2,8 +2,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Curso, Professor } from '@/data/mockData';
-import { Calendar, MapPin, User, Users, AlertTriangle, Plus, Edit } from 'lucide-react';
-import { formatDate, shouldShowViabilityAlert } from '@/utils/calculations';
+import { Calendar, MapPin, User, Users, AlertTriangle, Plus, Edit, DollarSign } from 'lucide-react';
+import { formatDate, shouldShowViabilityAlert, getFaturamentoCurso, formatCurrency } from '@/utils/calculations';
 import { useApp } from '@/contexts/AppContext';
 
 interface CursoCardProps {
@@ -14,8 +14,9 @@ interface CursoCardProps {
 }
 
 export function CursoCard({ curso, professor, onAddLead, onEdit }: CursoCardProps) {
-  const { getInscricoesCurso } = useApp();
+  const { getInscricoesCurso, leads } = useApp();
   const inscricoes = getInscricoesCurso(curso.id);
+  const faturamento = getFaturamentoCurso(leads, curso.id);
   const showAlert = shouldShowViabilityAlert(inscricoes, curso.dataInicio);
 
   return (
@@ -56,6 +57,16 @@ export function CursoCard({ curso, professor, onAddLead, onEdit }: CursoCardProp
         <div className="flex items-center text-sm text-foreground font-semibold">
           <Users className="h-4 w-4 mr-2 text-accent" />
           <span>{inscricoes} inscrições confirmadas</span>
+        </div>
+        
+        <div className="flex items-center justify-between pt-3 mt-3 border-t border-border">
+          <div className="flex items-center text-sm text-muted-foreground">
+            <DollarSign className="h-4 w-4 mr-2 text-success" />
+            <span>Faturamento</span>
+          </div>
+          <span className="text-lg font-bold text-success">
+            {formatCurrency(faturamento)}
+          </span>
         </div>
       </div>
 

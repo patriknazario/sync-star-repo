@@ -7,6 +7,13 @@ export const getInscricoesCurso = (leads: Lead[], cursoId: number): number => {
     .reduce((sum, l) => sum + l.quantidadeInscricoes, 0);
 };
 
+// Calcula faturamento de um curso a partir dos leads com inscrições realizadas
+export const getFaturamentoCurso = (leads: Lead[], cursoId: number): number => {
+  return leads
+    .filter(l => l.cursoId === cursoId && l.status === 'Inscrição Realizada')
+    .reduce((sum, l) => sum + (l.valorNegociado ?? l.valorProposta), 0);
+};
+
 export const calculateComissao = (faturamento: number): number => {
   return faturamento * 0.05;
 };
