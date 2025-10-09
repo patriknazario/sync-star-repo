@@ -153,7 +153,10 @@ export default function CRM() {
   };
 
   const handleMoveStatus = (leadId: number, newStatus: Lead['status']) => {
-    if (newStatus === 'Proposta Declinada') {
+    const lead = leads.find(l => l.id === leadId);
+    
+    // Só pede motivo ao DECLINAR uma proposta (não ao reativar)
+    if (newStatus === 'Proposta Declinada' && lead?.status !== 'Proposta Declinada') {
       setMotivoDialog({ isOpen: true, leadId });
     } else {
       moveLeadStatus(leadId, newStatus);
@@ -268,6 +271,55 @@ export default function CRM() {
               className="flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground text-xs"
             >
               Recusada
+            </Button>
+          </div>
+        )}
+
+        {lead.status === 'Inscrição Realizada' && (
+          <div className="flex space-x-2">
+            <Button
+              onClick={() => handleMoveStatus(lead.id, 'Proposta Declinada')}
+              size="sm"
+              variant="outline"
+              className="flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground text-xs"
+            >
+              Marcar como Recusada
+            </Button>
+            <Button
+              onClick={() => handleMoveStatus(lead.id, 'Proposta Enviada')}
+              size="sm"
+              variant="ghost"
+              className="flex-1 text-xs"
+            >
+              Voltar para Proposta
+            </Button>
+          </div>
+        )}
+
+        {lead.status === 'Proposta Declinada' && (
+          <div className="flex space-x-2">
+            <Button
+              onClick={() => {
+                const leadAtualizado = { ...lead, motivoPerda: undefined, observacoes: '' };
+                updateLead(lead.id, leadAtualizado);
+                handleMoveStatus(lead.id, 'Inscrição Realizada');
+              }}
+              size="sm"
+              className="flex-1 bg-success hover:bg-success/90 text-xs"
+            >
+              Reativar como Realizada
+            </Button>
+            <Button
+              onClick={() => {
+                const leadAtualizado = { ...lead, motivoPerda: undefined, observacoes: '' };
+                updateLead(lead.id, leadAtualizado);
+                handleMoveStatus(lead.id, 'Proposta Enviada');
+              }}
+              size="sm"
+              variant="ghost"
+              className="flex-1 text-xs"
+            >
+              Voltar para Proposta
             </Button>
           </div>
         )}
