@@ -77,6 +77,20 @@ export interface Cliente {
   recorrente: boolean;
 }
 
+export interface MetaGlobal {
+  ano: number;
+  valor: number;
+  descricao: string;
+}
+
+export interface TaxaComissao {
+  id: number;
+  taxa: number;
+  vendedoraId?: number;
+  cursoId?: number;
+  tipo: 'Padrão' | 'Específica';
+}
+
 export const vendedoras: Vendedora[] = [
   { id: 1, nome: "Ariane", metaMensal: 50000, metaAnual: 600000 },
   { id: 2, nome: "Elis", metaMensal: 45000, metaAnual: 540000 },
@@ -323,3 +337,29 @@ export const leads: Lead[] = [
 
 // Clientes são agora calculados dinamicamente a partir dos leads convertidos
 // A interface Cliente permanece para tipagem, mas não há dados mock iniciais
+
+export const metasGlobais: MetaGlobal[] = [
+  {
+    ano: 2024,
+    valor: 1800000,
+    descricao: 'Meta coletiva 2024 - Alcançando juntas o sucesso!'
+  },
+  {
+    ano: 2025,
+    valor: 2000000,
+    descricao: 'Alcançando a meta coletiva, todas as vendedoras receberão bônus especial de fim de ano.'
+  },
+  {
+    ano: 2026,
+    valor: 2200000,
+    descricao: 'Meta de crescimento 2026 com foco em expansão regional.'
+  }
+];
+
+export const taxasComissao: TaxaComissao[] = [
+  {
+    id: 1,
+    taxa: 5.0,
+    tipo: 'Padrão'
+  }
+];

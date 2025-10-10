@@ -12,6 +12,7 @@ import Performance from "./pages/Performance";
 import Analises from "./pages/Analises";
 import CRM from "./pages/CRM";
 import Relatorios from "./pages/Relatorios";
+import GestaoMetas from "./pages/GestaoMetas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/analises" element={<Analises />} />
               <Route path="/crm" element={<CRM />} />
               <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="/gestao-metas" element={<GestaoMetas />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

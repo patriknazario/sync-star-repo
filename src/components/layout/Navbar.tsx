@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, BookOpen, Users, TrendingUp, LineChart, UserCircle, FileText } from 'lucide-react';
+import { BarChart3, BookOpen, Users, TrendingUp, LineChart, UserCircle, FileText, Target } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: BarChart3 },
@@ -9,6 +9,7 @@ const navigation = [
   { name: 'Análises', href: '/analises', icon: LineChart },
   { name: 'CRM', href: '/crm', icon: UserCircle },
   { name: 'Relatórios', href: '/relatorios', icon: FileText },
+  { name: 'Gestão de Metas', href: '/gestao-metas', icon: Target },
 ];
 
 export function Navbar() {

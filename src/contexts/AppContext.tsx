@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Curso, Lead, Professor, Vendedora, Cliente, cursos as initialCursos, leads as initialLeads, professores as initialProfessores, vendedoras as initialVendedoras } from '@/data/mockData';
+import { Curso, Lead, Professor, Vendedora, Cliente, MetaGlobal, TaxaComissao, cursos as initialCursos, leads as initialLeads, professores as initialProfessores, vendedoras as initialVendedoras, metasGlobais as initialMetasGlobais, taxasComissao as initialTaxasComissao } from '@/data/mockData';
 import { getInscricoesCurso } from '@/utils/calculations';
 
 interface AppContextType {
@@ -9,6 +9,9 @@ interface AppContextType {
   vendedoras: Vendedora[];
   clientes: Cliente[];
   metaTotalAnual: number;
+  metasGlobais: MetaGlobal[];
+  taxasComissao: TaxaComissao[];
+  anoSelecionado: number;
   getInscricoesCurso: (cursoId: number) => number;
   
   // Cursos
@@ -32,6 +35,20 @@ interface AppContextType {
   
   // Meta Total
   setMetaTotalAnual: (meta: number) => void;
+  
+  // Metas Globais
+  getMetaGlobalByAno: (ano: number) => MetaGlobal | undefined;
+  updateMetaGlobal: (ano: number, meta: Partial<MetaGlobal>) => void;
+  calcRealizadoAno: (ano: number) => number;
+  
+  // Comissões
+  addTaxaComissao: (taxa: Omit<TaxaComissao, 'id'>) => void;
+  updateTaxaComissao: (id: number, taxa: Partial<TaxaComissao>) => void;
+  deleteTaxaComissao: (id: number) => void;
+  getTaxaComissao: (vendedoraId: number, cursoId: number) => number;
+  
+  // Ano
+  setAnoSelecionado: (ano: number) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -58,6 +75,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem(`${STORAGE_KEY}-vendedoras`);
     return stored ? JSON.parse(stored) : initialVendedoras;
   });
+
+  const [metasGlobais, setMetasGlobais] = useState<MetaGlobal[]>(() => {
+    const stored = localStorage.getItem(`${STORAGE_KEY}-metas-globais`);
+    return stored ? JSON.parse(stored) : initialMetasGlobais;
+  });
+
+  const [taxasComissao, setTaxasComissao] = useState<TaxaComissao[]>(() => {
+    const stored = localStorage.getItem(`${STORAGE_KEY}-taxas-comissao`);
+    return stored ? JSON.parse(stored) : initialTaxasComissao;
+  });
+
+  const [anoSelecionado, setAnoSelecionado] = useState<number>(2025);
 
   // Clientes não são mais armazenados, são derivados dos leads
   const extractClientesFromLeads = (): Cliente[] => {
@@ -135,6 +164,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem(`${STORAGE_KEY}-vendedoras`, JSON.stringify(vendedoras));
   }, [vendedoras]);
+
+  useEffect(() => {
+    localStorage.setItem(`${STORAGE_KEY}-metas-globais`, JSON.stringify(metasGlobais));
+  }, [metasGlobais]);
+
+  useEffect(() => {
+    localStorage.setItem(`${STORAGE_KEY}-taxas-comissao`, JSON.stringify(taxasComissao));
+  }, [taxasComissao]);
 
   // Clientes não são mais persistidos pois são derivados dinamicamente
 
@@ -241,6 +278,77 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })));
   };
 
+  // Metas Globais
+  const getMetaGlobalByAno = (ano: number): MetaGlobal | undefined => {
+    return metasGlobais.find(m => m.ano === ano);
+  };
+
+  const updateMetaGlobal = (ano: number, updates: Partial<MetaGlobal>) => {
+    setMetasGlobais(metas => {
+      const existingIndex = metas.findIndex(m => m.ano === ano);
+      if (existingIndex >= 0) {
+        const updated = [...metas];
+        updated[existingIndex] = { ...updated[existingIndex], ...updates };
+        return updated;
+      } else {
+        return [...metas, { ano, valor: 0, descricao: '', ...updates }];
+      }
+    });
+  };
+
+  const calcRealizadoAno = (ano: number): number => {
+    return leads
+      .filter(l => 
+        l.status === 'Inscrição Realizada' && 
+        l.dataConversao?.startsWith(ano.toString())
+      )
+      .reduce((sum, l) => sum + (l.valorNegociado ?? l.valorProposta), 0);
+  };
+
+  // Comissões
+  const addTaxaComissao = (taxa: Omit<TaxaComissao, 'id'>) => {
+    const newTaxa = { ...taxa, id: Date.now() };
+    setTaxasComissao([...taxasComissao, newTaxa]);
+  };
+
+  const updateTaxaComissao = (id: number, updates: Partial<TaxaComissao>) => {
+    setTaxasComissao(taxas => taxas.map(t => t.id === id ? { ...t, ...updates } : t));
+  };
+
+  const deleteTaxaComissao = (id: number) => {
+    setTaxasComissao(taxas => taxas.filter(t => t.id !== id));
+  };
+
+  const getTaxaComissao = (vendedoraId: number, cursoId: number): number => {
+    // Hierarquia: Específica (vendedora + curso) > Por vendedora > Por curso > Padrão
+    
+    // 1. Específica (vendedora + curso)
+    let taxa = taxasComissao.find(t => 
+      t.vendedoraId === vendedoraId && t.cursoId === cursoId
+    );
+    
+    // 2. Por vendedora (qualquer curso)
+    if (!taxa) {
+      taxa = taxasComissao.find(t => 
+        t.vendedoraId === vendedoraId && !t.cursoId
+      );
+    }
+    
+    // 3. Por curso (qualquer vendedora)
+    if (!taxa) {
+      taxa = taxasComissao.find(t => 
+        t.cursoId === cursoId && !t.vendedoraId
+      );
+    }
+    
+    // 4. Padrão
+    if (!taxa) {
+      taxa = taxasComissao.find(t => !t.vendedoraId && !t.cursoId);
+    }
+    
+    return taxa?.taxa ?? 0;
+  };
+
   const value = {
     cursos,
     leads,
@@ -248,6 +356,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     vendedoras,
     clientes,
     metaTotalAnual,
+    metasGlobais,
+    taxasComissao,
+    anoSelecionado,
     getInscricoesCurso: getCursoInscricoes,
     addCurso,
     updateCurso,
@@ -261,6 +372,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteProfessor,
     updateVendedoraMeta,
     setMetaTotalAnual,
+    getMetaGlobalByAno,
+    updateMetaGlobal,
+    calcRealizadoAno,
+    addTaxaComissao,
+    updateTaxaComissao,
+    deleteTaxaComissao,
+    getTaxaComissao,
+    setAnoSelecionado,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
