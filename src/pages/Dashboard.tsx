@@ -6,7 +6,7 @@ import { CursoCard } from '@/components/dashboard/CursoCard';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BookOpen, DollarSign, Users, TrendingUp, Edit2, Check } from 'lucide-react';
+import { BookOpen, DollarSign, Users, TrendingUp } from 'lucide-react';
 import {
   calculateTotalFaturamento,
   calculateTotalInscricoes,
@@ -35,10 +35,8 @@ import { toast } from '@/hooks/use-toast';
 import { Curso } from '@/data/mockData';
 
 export default function Dashboard() {
-  const { cursos, leads, professores, metaTotalAnual, setMetaTotalAnual, updateCurso } = useApp();
+  const { cursos, leads, professores, updateCurso, getMetaGlobalByAno, anoSelecionado } = useApp();
   const navigate = useNavigate();
-  const [editingMeta, setEditingMeta] = useState(false);
-  const [newMeta, setNewMeta] = useState(metaTotalAnual);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingCurso, setEditingCurso] = useState<Curso | null>(null);
   const [formData, setFormData] = useState<Partial<Curso>>({
@@ -54,17 +52,15 @@ export default function Dashboard() {
     status: 'Planejado',
   });
 
+  const metaGlobal = getMetaGlobalByAno(anoSelecionado);
+  const metaAtual = metaGlobal?.valor ?? 0;
+
   const cursosAtivos = cursos
     .filter(c => c.status === 'Inscrições Abertas' || c.status === 'Em Andamento')
     .sort((a, b) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime());
 
   const totalFaturamento = calculateTotalFaturamento(leads);
   const totalInscricoes = calculateTotalInscricoes(leads);
-
-  const handleSaveMeta = () => {
-    setMetaTotalAnual(newMeta);
-    setEditingMeta(false);
-  };
 
   const handleAddLead = (cursoId: number) => {
     navigate(`/crm?curso=${cursoId}`);
@@ -160,47 +156,17 @@ export default function Dashboard() {
         <Card className="p-6 mb-8 bg-gradient-to-br from-primary/5 to-accent/5 border-2 border-primary/20">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-foreground">Meta de Faturamento Anual</h2>
-            {editingMeta ? (
-              <Button
-                onClick={handleSaveMeta}
-                size="sm"
-                className="bg-success hover:bg-success/90"
-              >
-                <Check className="h-4 w-4 mr-2" />
-                Salvar
-              </Button>
-            ) : (
-              <Button
-                onClick={() => setEditingMeta(true)}
-                variant="outline"
-                size="sm"
-                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-              >
-                <Edit2 className="h-4 w-4 mr-2" />
-                Editar Meta
-              </Button>
-            )}
+            <TrendingUp className="h-6 w-6 text-primary" />
           </div>
 
-          {editingMeta ? (
-            <div className="mb-4">
-              <Input
-                type="number"
-                value={newMeta}
-                onChange={(e) => setNewMeta(Number(e.target.value))}
-                className="text-lg font-semibold"
-              />
-            </div>
-          ) : (
-            <div className="mb-4">
-              <p className="text-sm text-muted-foreground mb-1">Meta: {formatCurrency(metaTotalAnual)}</p>
-              <p className="text-2xl font-bold text-foreground">Realizado: {formatCurrency(totalFaturamento)}</p>
-            </div>
-          )}
+          <div className="mb-4">
+            <p className="text-sm text-muted-foreground mb-1">Meta: {formatCurrency(metaAtual)}</p>
+            <p className="text-2xl font-bold text-foreground">Realizado: {formatCurrency(totalFaturamento)}</p>
+          </div>
 
           <ProgressBar
             current={totalFaturamento}
-            target={metaTotalAnual}
+            target={metaAtual}
             gradient={true}
           />
         </Card>

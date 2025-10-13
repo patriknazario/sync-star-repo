@@ -8,7 +8,6 @@ interface AppContextType {
   professores: Professor[];
   vendedoras: Vendedora[];
   clientes: Cliente[];
-  metaTotalAnual: number;
   metasGlobais: MetaGlobal[];
   taxasComissao: TaxaComissao[];
   anoSelecionado: number;
@@ -32,9 +31,6 @@ interface AppContextType {
   
   // Vendedoras
   updateVendedoraMeta: (id: number, metaMensal: number, metaAnual: number) => void;
-  
-  // Meta Total
-  setMetaTotalAnual: (meta: number) => void;
   
   // Metas Globais
   getMetaGlobalByAno: (ano: number) => MetaGlobal | undefined;
@@ -144,9 +140,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const clientes = extractClientesFromLeads();
-
-  // Meta total é calculada dinamicamente a partir das metas individuais
-  const metaTotalAnual = vendedoras.reduce((sum, v) => sum + v.metaAnual, 0);
 
   // Persist to localStorage
   useEffect(() => {
@@ -262,20 +255,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Vendedoras
   const updateVendedoraMeta = (id: number, metaMensal: number, metaAnual: number) => {
     setVendedoras(vendedoras.map(v => v.id === id ? { ...v, metaMensal, metaAnual } : v));
-    // metaTotalAnual é recalculado automaticamente como campo derivado
-  };
-
-  const setMetaTotalAnual = (meta: number) => {
-    // Distribuir a meta proporcionalmente entre as vendedoras
-    const totalAtual = vendedoras.reduce((sum, v) => sum + v.metaAnual, 0);
-    if (totalAtual === 0) return;
-    
-    const fator = meta / totalAtual;
-    setVendedoras(vendedoras.map(v => ({
-      ...v,
-      metaAnual: Math.round(v.metaAnual * fator),
-      metaMensal: Math.round((v.metaAnual * fator) / 12)
-    })));
   };
 
   // Metas Globais
@@ -355,7 +334,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     professores,
     vendedoras,
     clientes,
-    metaTotalAnual,
     metasGlobais,
     taxasComissao,
     anoSelecionado,
@@ -371,7 +349,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     updateProfessor,
     deleteProfessor,
     updateVendedoraMeta,
-    setMetaTotalAnual,
     getMetaGlobalByAno,
     updateMetaGlobal,
     calcRealizadoAno,
