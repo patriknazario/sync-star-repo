@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useCursos } from '@/hooks/useCursos';
+import { useLeads } from '@/hooks/useLeads';
+import { useProfessores } from '@/hooks/useProfessores';
+import { useMetasGlobais } from '@/hooks/useMetasGlobais';
 import { KPICard } from '@/components/common/KPICard';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import { CursoCard } from '@/components/dashboard/CursoCard';
@@ -32,10 +36,14 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
-import { Curso } from '@/data/mockData';
+import type { Curso } from '@/hooks/useCursos';
 
 export default function Dashboard() {
-  const { cursos, leads, professores, updateCurso, getMetaGlobalByAno, anoSelecionado } = useApp();
+  const { anoSelecionado } = useApp();
+  const { cursos, updateCurso, isLoading: cursosLoading } = useCursos();
+  const { leads, isLoading: leadsLoading } = useLeads();
+  const { professores, isLoading: professoresLoading } = useProfessores();
+  const { metasGlobais, isLoading: metasLoading } = useMetasGlobais();
   const navigate = useNavigate();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingCurso, setEditingCurso] = useState<Curso | null>(null);
