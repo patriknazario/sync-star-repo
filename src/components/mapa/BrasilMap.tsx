@@ -1,6 +1,7 @@
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
 import { feature } from 'topojson-client';
 import brazilTopo from '@/data/brazil-states.json';
+import { useMemo, useState } from 'react';
 
 interface EstadoInfo {
   sigla: string;
@@ -19,6 +20,8 @@ interface BrasilMapProps {
 }
 
 export function BrasilMap({ estadosData, selectedState, onSelectState, maxCursos }: BrasilMapProps) {
+  const [tooltipContent, setTooltipContent] = useState('');
+  
   const getHeatColor = (sigla: string, isDark: boolean) => {
     const estadoInfo = estadosData.get(sigla);
     if (!estadoInfo || estadoInfo.totalCursos === 0) {
@@ -32,26 +35,35 @@ export function BrasilMap({ estadosData, selectedState, onSelectState, maxCursos
 
   const isDark = document.documentElement.classList.contains('dark');
 
-  // Convert TopoJSON to GeoJSON
-  const geoData = feature(
-    brazilTopo as any,
-    brazilTopo.objects.states as any
+  // Convert TopoJSON to GeoJSON (memoized for performance)
+  const geoData = useMemo(() => 
+    feature(
+      brazilTopo as any,
+      brazilTopo.objects.states as any
+    ), []
   );
 
   return (
-    <div className="w-full h-full flex items-center justify-center">
+    <div className="w-full h-full flex items-center justify-center relative">
+      {tooltipContent && (
+        <div className="absolute top-4 left-4 bg-gray-900 text-white px-3 py-2 rounded-lg text-sm shadow-lg z-10 whitespace-pre-line">
+          {tooltipContent}
+        </div>
+      )}
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{
-          scale: 600,
-          center: [-52, -15]
+          scale: 700,
+          center: [-53, -14]
         }}
+        width={800}
+        height={600}
         className="w-full h-auto"
       >
         <Geographies geography={geoData}>
           {({ geographies }) =>
             geographies.map((geo) => {
-              const sigla = geo.properties.sigla as string;
+              const sigla = (geo.properties.sigla || geo.properties.abbreviation || geo.id) as string;
               const isSelected = selectedState === sigla;
               const estadoInfo = estadosData.get(sigla);
               
@@ -75,13 +87,21 @@ export function BrasilMap({ estadosData, selectedState, onSelectState, maxCursos
                     pressed: { outline: 'none' }
                   }}
                   onClick={() => estadoInfo && onSelectState(sigla)}
+                  onMouseEnter={() => {
+                    const info = estadosData.get(sigla);
+                    setTooltipContent(info 
+                      ? `${geo.properties.nome || geo.properties.name}\n${info.totalCursos} curso${info.totalCursos !== 1 ? 's' : ''}`
+                      : (geo.properties.nome || geo.properties.name || sigla)
+                    );
+                  }}
+                  onMouseLeave={() => setTooltipContent('')}
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if ((e.key === 'Enter' || e.key === ' ') && estadoInfo) {
                       onSelectState(sigla);
                     }
                   }}
-                  aria-label={`${geo.properties.nome} - ${estadoInfo ? `${estadoInfo.totalCursos} cursos` : 'sem cursos'}`}
+                  aria-label={`${geo.properties.nome || geo.properties.name} - ${estadoInfo ? `${estadoInfo.totalCursos} cursos` : 'sem cursos'}`}
                 />
               );
             })
