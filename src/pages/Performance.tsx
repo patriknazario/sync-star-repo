@@ -178,13 +178,18 @@ export default function Performance() {
                         </div>
 
                         <div>
-                          <p className="text-xs text-muted-foreground">Progressão</p>
-                          <div className="w-40">
+                          <p className="text-xs text-muted-foreground mb-1">Progressão</p>
+                          <div className="space-y-1 w-40">
                             <ProgressBar
                               current={vendedora.faturamento}
                               target={vendedora.metaAnual}
-                              showPercentage={true}
+                              showPercentage={false}
+                              compact={true}
                             />
+                            <div className="text-xs text-muted-foreground space-y-0.5">
+                              <p className="truncate">Real: {formatCurrency(vendedora.faturamento)}</p>
+                              <p className="truncate">Meta: {formatCurrency(vendedora.metaAnual)}</p>
+                            </div>
                           </div>
                         </div>
 
