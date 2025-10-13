@@ -1,352 +1,669 @@
-import { useState } from 'react';
-import { useLeads, Lead } from '@/hooks/useLeads';
-import { useCursos } from '@/hooks/useCursos';
-import { useVendedoras } from '@/hooks/useVendedoras';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useApp } from '@/contexts/AppContext';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Eye } from 'lucide-react';
-import { formatCurrency } from '@/utils/calculations';
+import { Plus, Edit, Trash2, Building, MapPin, DollarSign, TrendingDown, AlertCircle } from 'lucide-react';
+import { Lead } from '@/data/mockData';
+import { formatCurrency, validateEmail, validateTelefone } from '@/utils/calculations';
 import { toast } from 'sonner';
 
-const STATUS_COLORS = {
-  'Proposta Enviada': 'bg-blue-500',
-  'Em Negociação': 'bg-yellow-500',
-  'Inscrição Realizada': 'bg-green-500',
-  'Perdido': 'bg-red-500',
-  'Cancelado': 'bg-gray-500'
-};
+const estados = ['SP', 'RJ', 'MG', 'DF', 'BA', 'CE', 'PE', 'PR', 'RS', 'SC', 'GO', 'AM', 'PA'];
 
 export default function CRM() {
-  const { leads, isLoading, addLead, updateLead } = useLeads();
-  const { cursos } = useCursos();
-  const { vendedoras } = useVendedoras();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [detailsDialog, setDetailsDialog] = useState<Lead | null>(null);
-  const [formData, setFormData] = useState({
-    nome_responsavel: '',
+  const { leads, cursos, vendedoras, addLead, updateLead, deleteLead, moveLeadStatus } = useApp();
+  const [searchParams] = useSearchParams();
+  const [selectedCurso, setSelectedCurso] = useState<number | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [motivoDialog, setMotivoDialog] = useState<{ isOpen: boolean; leadId: number | null }>({
+    isOpen: false,
+    leadId: null,
+  });
+  const [motivoPerda, setMotivoPerda] = useState<Lead['motivoPerda']>();
+  const [observacoes, setObservacoes] = useState('');
+
+  const [formData, setFormData] = useState<Partial<Lead>>({
+    cursoId: cursos[0]?.id || 0,
+    nomeResponsavel: '',
     orgao: '',
     setor: '',
     cidade: '',
-    estado: '',
+    estado: 'SP',
     telefone: '',
     email: '',
-    curso_id: '',
-    vendedora_id: '',
-    quantidade_inscricoes: 1,
-    valor_proposta: 0,
-    observacoes: ''
+    quantidadeInscricoes: 1,
+    valorProposta: 0,
+    vendedoraId: vendedoras[0]?.id || 1,
+    status: 'Proposta Enviada',
+    dataCadastro: new Date().toISOString().split('T')[0],
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await addLead({
-        ...formData,
-        status: 'Proposta Enviada' as any,
-        data_cadastro: new Date().toISOString().split('T')[0]
+  // Auto-abrir dialog quando vem do Dashboard com curso pré-selecionado
+  useEffect(() => {
+    const cursoIdFromUrl = searchParams.get('curso');
+    if (cursoIdFromUrl) {
+      const cursoId = Number(cursoIdFromUrl);
+      setSelectedCurso(cursoId);
+      
+      const curso = cursos.find(c => c.id === cursoId);
+      if (curso) {
+        setFormData({
+          cursoId,
+          nomeResponsavel: '',
+          orgao: '',
+          setor: '',
+          cidade: '',
+          estado: 'SP',
+          telefone: '',
+          email: '',
+          quantidadeInscricoes: 1,
+          valorProposta: curso.valorInscricao,
+          vendedoraId: vendedoras[0]?.id || 1,
+          status: 'Proposta Enviada',
+          dataCadastro: new Date().toISOString().split('T')[0],
+        });
+        setIsDialogOpen(true);
+      }
+    }
+  }, [searchParams, cursos, vendedoras]);
+
+  const cursoSelecionado = selectedCurso ? cursos.find(c => c.id === selectedCurso) : null;
+  const leadsDoCurso = leads.filter(l => l.cursoId === selectedCurso);
+
+  const leadsPropostaEnviada = leadsDoCurso.filter(l => l.status === 'Proposta Enviada');
+  const leadsInscricaoRealizada = leadsDoCurso.filter(l => l.status === 'Inscrição Realizada');
+  const leadsPropostaDeclinada = leadsDoCurso.filter(l => l.status === 'Proposta Declinada');
+
+  const handleOpenDialog = (lead?: Lead) => {
+    if (lead) {
+      setEditingLead(lead);
+      setFormData(lead);
+    } else {
+      setEditingLead(null);
+      const cursoId = selectedCurso || cursos[0]?.id || 0;
+      const curso = cursos.find(c => c.id === cursoId);
+      setFormData({
+        cursoId,
+        nomeResponsavel: '',
+        orgao: '',
+        setor: '',
+        cidade: '',
+        estado: 'SP',
+        telefone: '',
+        email: '',
+        quantidadeInscricoes: 1,
+        valorProposta: curso?.valorInscricao || 0,
+        vendedoraId: vendedoras[0]?.id || 1,
+        status: 'Proposta Enviada',
+        dataCadastro: new Date().toISOString().split('T')[0],
       });
-      setDialogOpen(false);
-      resetForm();
-    } catch (error) {
-      console.error('Erro ao criar lead:', error);
+    }
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!formData.nomeResponsavel || !formData.orgao || !formData.cidade) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    // Validar email se preenchido
+    if (formData.email && !validateEmail(formData.email)) {
+      toast.error('Email inválido');
+      return;
+    }
+
+    // Validar telefone se preenchido
+    if (formData.telefone && !validateTelefone(formData.telefone)) {
+      toast.error('Telefone inválido. Use o formato (11) 98765-4321');
+      return;
+    }
+
+    const curso = cursos.find(c => c.id === formData.cursoId);
+    const valorProposta = (formData.quantidadeInscricoes || 1) * (curso?.valorInscricao || 0);
+
+    if (editingLead) {
+      updateLead(editingLead.id, { ...formData, valorProposta });
+      toast.success('Lead atualizado com sucesso!');
+    } else {
+      addLead({ ...formData, valorProposta } as Omit<Lead, 'id'>);
+      toast.success('Lead cadastrado com sucesso!');
+    }
+
+    setIsDialogOpen(false);
+  };
+
+  const handleMoveStatus = (leadId: number, newStatus: Lead['status']) => {
+    const lead = leads.find(l => l.id === leadId);
+    
+    // Só pede motivo ao DECLINAR uma proposta (não ao reativar)
+    if (newStatus === 'Proposta Declinada' && lead?.status !== 'Proposta Declinada') {
+      setMotivoDialog({ isOpen: true, leadId });
+    } else {
+      moveLeadStatus(leadId, newStatus);
+      toast.success('Status atualizado com sucesso!');
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      nome_responsavel: '',
-      orgao: '',
-      setor: '',
-      cidade: '',
-      estado: '',
-      telefone: '',
-      email: '',
-      curso_id: '',
-      vendedora_id: '',
-      quantidade_inscricoes: 1,
-      valor_proposta: 0,
-      observacoes: ''
-    });
-  };
-
-  const handleStatusChange = async (leadId: string, newStatus: string) => {
-    try {
-      await updateLead({
-        id: leadId,
-        status: newStatus as any,
-        data_conversao: newStatus === 'Inscrição Realizada' ? new Date().toISOString().split('T')[0] : null
-      });
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error);
+  const handleSaveMotivo = () => {
+    if (motivoDialog.leadId && motivoPerda) {
+      moveLeadStatus(motivoDialog.leadId, 'Proposta Declinada', motivoPerda, observacoes);
+      setMotivoDialog({ isOpen: false, leadId: null });
+      setMotivoPerda(undefined);
+      setObservacoes('');
+      toast.success('Lead movido para Proposta Declinada');
     }
   };
 
-  const groupedLeads = {
-    'Proposta Enviada': leads.filter(l => l.status === 'Proposta Enviada'),
-    'Em Negociação': leads.filter(l => (l.status as any) === 'Em Negociação'),
-    'Inscrição Realizada': leads.filter(l => l.status === 'Inscrição Realizada'),
-    'Perdido': leads.filter(l => (l.status as any) === 'Perdido'),
-    'Cancelado': leads.filter(l => (l.status as any) === 'Cancelado')
+  const handleDelete = (id: number) => {
+    if (confirm('Tem certeza que deseja excluir este lead?')) {
+      deleteLead(id);
+      toast.success('Lead excluído com sucesso!');
+    }
   };
 
-  if (isLoading) {
+  const renderLeadCard = (lead: Lead) => {
+    const curso = cursos.find(c => c.id === lead.cursoId);
+    const vendedora = vendedoras.find(v => v.id === lead.vendedoraId);
+
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-lg text-muted-foreground">Carregando CRM...</p>
-      </div>
+      <Card key={lead.id} className="p-4 hover:shadow-md transition-all bg-card cursor-move">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1">
+            <h4 className="font-semibold text-foreground mb-1">{lead.nomeResponsavel}</h4>
+            <div className="flex items-center text-sm text-muted-foreground mb-1">
+              <Building className="h-3 w-3 mr-1" />
+              {lead.orgao}
+            </div>
+            <div className="flex items-center text-sm text-muted-foreground">
+              <MapPin className="h-3 w-3 mr-1" />
+              {lead.cidade}, {lead.estado}
+            </div>
+          </div>
+          <div className="flex space-x-1">
+            <Button
+              onClick={() => handleOpenDialog(lead)}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+            >
+              <Edit className="h-3 w-3" />
+            </Button>
+            <Button
+              onClick={() => handleDelete(lead.id)}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-2 mb-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Qtd. Inscrições:</span>
+            <span className="font-semibold">{lead.quantidadeInscricoes}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Valor:</span>
+            <div className="text-right">
+              {lead.valorNegociado ? (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-accent text-base">
+                      {formatCurrency(lead.valorNegociado)}
+                    </span>
+                    {lead.valorNegociado < lead.valorProposta && (
+                      <span className="text-xs font-semibold text-success bg-success/10 px-2 py-0.5 rounded">
+                        -{(((lead.valorProposta - lead.valorNegociado) / lead.valorProposta) * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                  {lead.valorNegociado !== lead.valorProposta && (
+                    <div className="text-xs text-muted-foreground line-through">
+                      {formatCurrency(lead.valorProposta)}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <span className="font-semibold text-accent">{formatCurrency(lead.valorProposta)}</span>
+              )}
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Vendedora: {vendedora?.nome}
+          </div>
+        </div>
+
+        {lead.status === 'Proposta Enviada' && (
+          <div className="flex space-x-2">
+            <Button
+              onClick={() => handleMoveStatus(lead.id, 'Inscrição Realizada')}
+              size="sm"
+              className="flex-1 bg-success hover:bg-success/90 text-xs"
+            >
+              Realizada
+            </Button>
+            <Button
+              onClick={() => handleMoveStatus(lead.id, 'Proposta Declinada')}
+              size="sm"
+              variant="outline"
+              className="flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground text-xs"
+            >
+              Recusada
+            </Button>
+          </div>
+        )}
+
+        {lead.status === 'Inscrição Realizada' && (
+          <div className="flex space-x-2">
+            <Button
+              onClick={() => handleMoveStatus(lead.id, 'Proposta Declinada')}
+              size="sm"
+              variant="outline"
+              className="flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground text-xs"
+            >
+              Marcar como Recusada
+            </Button>
+            <Button
+              onClick={() => handleMoveStatus(lead.id, 'Proposta Enviada')}
+              size="sm"
+              variant="ghost"
+              className="flex-1 text-xs"
+            >
+              Voltar para Proposta
+            </Button>
+          </div>
+        )}
+
+        {lead.status === 'Proposta Declinada' && (
+          <div className="flex space-x-2">
+            <Button
+              onClick={() => {
+                const leadAtualizado = { ...lead, motivoPerda: undefined, observacoes: '' };
+                updateLead(lead.id, leadAtualizado);
+                handleMoveStatus(lead.id, 'Inscrição Realizada');
+              }}
+              size="sm"
+              className="flex-1 bg-success hover:bg-success/90 text-xs"
+            >
+              Reativar como Realizada
+            </Button>
+            <Button
+              onClick={() => {
+                const leadAtualizado = { ...lead, motivoPerda: undefined, observacoes: '' };
+                updateLead(lead.id, leadAtualizado);
+                handleMoveStatus(lead.id, 'Proposta Enviada');
+              }}
+              size="sm"
+              variant="ghost"
+              className="flex-1 text-xs"
+            >
+              Voltar para Proposta
+            </Button>
+          </div>
+        )}
+
+        {lead.motivoPerda && (
+          <div className="mt-2 p-2 bg-destructive/10 rounded text-xs">
+            <span className="font-semibold">Motivo: </span>{lead.motivoPerda}
+          </div>
+        )}
+      </Card>
     );
-  }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">CRM</h1>
-            <p className="text-muted-foreground">Funil de vendas e gestão de leads</p>
+            <h1 className="text-3xl font-bold text-foreground">CRM - Gestão de Leads</h1>
+            <p className="text-muted-foreground mt-2">Pipeline de vendas por curso</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Novo Lead
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Novo Lead</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Responsável *</Label>
-                    <Input
-                      required
-                      value={formData.nome_responsavel}
-                      onChange={e => setFormData({ ...formData, nome_responsavel: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Órgão *</Label>
-                    <Input
-                      required
-                      value={formData.orgao}
-                      onChange={e => setFormData({ ...formData, orgao: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Cidade *</Label>
-                    <Input
-                      required
-                      value={formData.cidade}
-                      onChange={e => setFormData({ ...formData, cidade: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Estado *</Label>
-                    <Input
-                      required
-                      maxLength={2}
-                      value={formData.estado}
-                      onChange={e => setFormData({ ...formData, estado: e.target.value.toUpperCase() })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Setor</Label>
-                    <Input
-                      value={formData.setor}
-                      onChange={e => setFormData({ ...formData, setor: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Telefone</Label>
-                    <Input
-                      value={formData.telefone}
-                      onChange={e => setFormData({ ...formData, telefone: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>E-mail</Label>
-                    <Input
-                      type="email"
-                      value={formData.email}
-                      onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Curso *</Label>
-                    <Select value={formData.curso_id} onValueChange={v => setFormData({ ...formData, curso_id: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cursos.map(c => (
-                          <SelectItem key={c.id} value={c.id}>{c.tema} - {c.cidade}/{c.estado}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Vendedora *</Label>
-                    <Select value={formData.vendedora_id} onValueChange={v => setFormData({ ...formData, vendedora_id: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {vendedoras.map(v => (
-                          <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Quantidade de Inscrições *</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      required
-                      value={formData.quantidade_inscricoes}
-                      onChange={e => setFormData({ ...formData, quantidade_inscricoes: parseInt(e.target.value) })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Valor Proposta *</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      required
-                      value={formData.valor_proposta}
-                      onChange={e => setFormData({ ...formData, valor_proposta: parseFloat(e.target.value) })}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Observações</Label>
-                  <Textarea
-                    rows={3}
-                    value={formData.observacoes}
-                    onChange={e => setFormData({ ...formData, observacoes: e.target.value })}
-                  />
-                </div>
-
-                <div className="flex gap-2 justify-end pt-4">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit">Criar Lead</Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button
+            onClick={() => handleOpenDialog()}
+            className="bg-accent hover:bg-accent/90"
+            disabled={!selectedCurso}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Lead
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {Object.entries(groupedLeads).map(([status, statusLeads]) => (
-            <Card key={status} className="flex flex-col">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${STATUS_COLORS[status as keyof typeof STATUS_COLORS]}`} />
-                  {status}
-                  <Badge variant="secondary" className="ml-auto">{statusLeads.length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 flex-1">
-                {statusLeads.map(lead => {
-                  const curso = cursos.find(c => c.id === lead.curso_id);
-                  return (
-                    <Card key={lead.id} className="p-3 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setDetailsDialog(lead)}>
-                      <h4 className="font-bold text-sm mb-1">{lead.orgao}</h4>
-                      <p className="text-xs text-muted-foreground mb-2">{lead.nome_responsavel}</p>
-                      <p className="text-xs mb-1">{curso?.tema}</p>
-                      <p className="text-xs text-muted-foreground mb-2">{lead.cidade}/{lead.estado}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-primary">
-                          {formatCurrency(lead.valor_proposta)}
-                        </span>
-                        <Badge variant="outline" className="text-xs">
-                          {lead.quantidade_inscricoes} insc.
-                        </Badge>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Seletor de Curso */}
+        <Card className="p-4 mb-6">
+          <Label>Selecione um Curso</Label>
+          <Select
+            value={selectedCurso?.toString()}
+            onValueChange={(value) => setSelectedCurso(Number(value))}
+          >
+            <SelectTrigger className="mt-2">
+              <SelectValue placeholder="Escolha um curso" />
+            </SelectTrigger>
+            <SelectContent>
+              {cursos.map((curso) => (
+                <SelectItem key={curso.id} value={curso.id.toString()}>
+                  {curso.tema} - {curso.cidade}/{curso.estado}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Card>
 
-        {detailsDialog && (
-          <Dialog open={!!detailsDialog} onOpenChange={() => setDetailsDialog(null)}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Detalhes do Lead</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Órgão</Label>
-                  <p className="font-bold">{detailsDialog.orgao}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Responsável</Label>
-                  <p>{detailsDialog.nome_responsavel}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Cidade/Estado</Label>
-                    <p>{detailsDialog.cidade}/{detailsDialog.estado}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Status Atual</Label>
-                    <Badge>{detailsDialog.status}</Badge>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Alterar Status</Label>
-                  <Select
-                    value={detailsDialog.status}
-                    onValueChange={v => handleStatusChange(detailsDialog.id, v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.keys(STATUS_COLORS).map(s => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {detailsDialog.observacoes && (
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Observações</Label>
-                    <p className="text-sm">{detailsDialog.observacoes}</p>
-                  </div>
-                )}
+        {/* Kanban Board */}
+        {selectedCurso && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Coluna 1: Proposta Enviada */}
+            <div>
+              <div className="bg-primary text-primary-foreground p-4 rounded-t-lg">
+                <h3 className="font-semibold text-center">Proposta Enviada</h3>
+                <p className="text-center text-sm opacity-90">{leadsPropostaEnviada.length} leads</p>
               </div>
-            </DialogContent>
-          </Dialog>
+              <div className="bg-muted/20 p-4 rounded-b-lg min-h-[400px] space-y-3">
+                {leadsPropostaEnviada.map(renderLeadCard)}
+              </div>
+            </div>
+
+            {/* Coluna 2: Inscrição Realizada */}
+            <div>
+              <div className="bg-success text-success-foreground p-4 rounded-t-lg">
+                <h3 className="font-semibold text-center">Inscrição Realizada</h3>
+                <p className="text-center text-sm opacity-90">{leadsInscricaoRealizada.length} leads</p>
+              </div>
+              <div className="bg-muted/20 p-4 rounded-b-lg min-h-[400px] space-y-3">
+                {leadsInscricaoRealizada.map(renderLeadCard)}
+              </div>
+            </div>
+
+            {/* Coluna 3: Proposta Declinada */}
+            <div>
+              <div className="bg-destructive text-destructive-foreground p-4 rounded-t-lg">
+                <h3 className="font-semibold text-center">Proposta Declinada</h3>
+                <p className="text-center text-sm opacity-90">{leadsPropostaDeclinada.length} leads</p>
+              </div>
+              <div className="bg-muted/20 p-4 rounded-b-lg min-h-[400px] space-y-3">
+                {leadsPropostaDeclinada.map(renderLeadCard)}
+              </div>
+            </div>
+          </div>
         )}
       </div>
+
+      {/* Dialog Criar/Editar Lead */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingLead ? 'Editar Lead' : 'Novo Lead'}</DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label>Curso *</Label>
+              <Select
+                value={formData.cursoId?.toString()}
+                onValueChange={(value) => {
+                  const cursoId = Number(value);
+                  const curso = cursos.find(c => c.id === cursoId);
+                  setFormData({
+                    ...formData,
+                    cursoId,
+                    valorProposta: (formData.quantidadeInscricoes || 1) * (curso?.valorInscricao || 0),
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {cursos.map((curso) => (
+                    <SelectItem key={curso.id} value={curso.id.toString()}>
+                      {curso.tema}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Nome do Responsável *</Label>
+                <Input
+                  value={formData.nomeResponsavel}
+                  onChange={(e) => setFormData({ ...formData, nomeResponsavel: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Vendedora *</Label>
+                <Select
+                  value={formData.vendedoraId?.toString()}
+                  onValueChange={(value) => setFormData({ ...formData, vendedoraId: Number(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendedoras.map((v) => (
+                      <SelectItem key={v.id} value={v.id.toString()}>
+                        {v.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Órgão/Empresa *</Label>
+                <Input
+                  value={formData.orgao}
+                  onChange={(e) => setFormData({ ...formData, orgao: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Setor</Label>
+                <Input
+                  value={formData.setor}
+                  onChange={(e) => setFormData({ ...formData, setor: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Cidade *</Label>
+                <Input
+                  value={formData.cidade}
+                  onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Estado *</Label>
+                <Select
+                  value={formData.estado}
+                  onValueChange={(value) => setFormData({ ...formData, estado: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {estados.map((estado) => (
+                      <SelectItem key={estado} value={estado}>{estado}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Telefone</Label>
+                <Input
+                  value={formData.telefone}
+                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Quantidade de Inscrições</Label>
+              <Input
+                type="number"
+                min="1"
+                value={formData.quantidadeInscricoes}
+                onChange={(e) => {
+                  const qtd = Number(e.target.value);
+                  const curso = cursos.find(c => c.id === formData.cursoId);
+                  setFormData({
+                    ...formData,
+                    quantidadeInscricoes: qtd,
+                    valorProposta: qtd * (curso?.valorInscricao || 0),
+                  });
+                }}
+              />
+            </div>
+
+            {/* Seção de Valores */}
+            <div className="space-y-4 p-4 bg-muted rounded-lg">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Valor Padrão */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Valor da Proposta (Padrão)</Label>
+                  <p className="text-lg font-bold text-foreground">
+                    {formatCurrency(formData.valorProposta || 0)}
+                  </p>
+                </div>
+
+                {/* Valor Negociado */}
+                <div>
+                  <Label htmlFor="valorNegociado">Valor Negociado (Opcional)</Label>
+                  <Input
+                    id="valorNegociado"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Deixe vazio para usar valor padrão"
+                    value={formData.valorNegociado || ''}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      valorNegociado: e.target.value ? Number(e.target.value) : undefined 
+                    })}
+                  />
+                </div>
+              </div>
+
+              {/* Indicador de Desconto */}
+              {formData.valorNegociado && formData.valorNegociado < (formData.valorProposta || 0) && (
+                <div className="flex items-center justify-between p-3 bg-success/10 border border-success/20 rounded">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown className="h-4 w-4 text-success" />
+                    <span className="text-sm font-semibold text-success">Desconto Aplicado</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-success">
+                      {(((formData.valorProposta || 0) - formData.valorNegociado) / (formData.valorProposta || 0) * 100).toFixed(1)}%
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Economia: {formatCurrency((formData.valorProposta || 0) - formData.valorNegociado)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Alerta se valor negociado for maior */}
+              {formData.valorNegociado && formData.valorNegociado > (formData.valorProposta || 0) && (
+                <div className="flex items-center gap-2 p-3 bg-warning/10 border border-warning/20 rounded">
+                  <AlertCircle className="h-4 w-4 text-warning" />
+                  <span className="text-sm text-warning">
+                    Valor negociado está acima do padrão (+{(((formData.valorNegociado - (formData.valorProposta || 0)) / (formData.valorProposta || 0)) * 100).toFixed(1)}%)
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave} className="bg-accent hover:bg-accent/90">
+              {editingLead ? 'Salvar' : 'Criar Lead'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Motivo de Perda */}
+      <Dialog open={motivoDialog.isOpen} onOpenChange={(open) => setMotivoDialog({ isOpen: open, leadId: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Motivo da Perda</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Motivo *</Label>
+              <Select value={motivoPerda} onValueChange={(value: any) => setMotivoPerda(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o motivo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Preço">Preço</SelectItem>
+                  <SelectItem value="Data do curso incompatível">Data do curso incompatível</SelectItem>
+                  <SelectItem value="Sem orçamento">Sem orçamento</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Observações</Label>
+              <Textarea
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMotivoDialog({ isOpen: false, leadId: null })}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveMotivo} className="bg-destructive hover:bg-destructive/90">
+              Confirmar Perda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

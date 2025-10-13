@@ -1,300 +1,515 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { useMetasGlobais } from '@/hooks/useMetasGlobais';
-import { useVendedoras } from '@/hooks/useVendedoras';
-import { useTaxasComissao } from '@/hooks/useTaxasComissao';
-import { useLeads } from '@/hooks/useLeads';
-import { useCursos } from '@/hooks/useCursos';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Target, TrendingUp, Edit, Plus, Trash2 } from 'lucide-react';
-import { formatCurrency } from '@/utils/calculations';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { ProgressBar } from '@/components/common/ProgressBar';
+import { Target, Users, TrendingUp, Edit2, Trash2, AlertTriangle, Plus } from 'lucide-react';
+import { formatCurrency } from '@/utils/calculations';
+import { toast } from '@/hooks/use-toast';
 
 export default function GestaoMetas() {
-  const { anoSelecionado } = useApp();
-  const { metasGlobais, updateMetaGlobal, addMetaGlobal } = useMetasGlobais();
-  const { vendedoras, updateVendedora } = useVendedoras();
-  const { taxasComissao, addTaxaComissao, deleteTaxaComissao } = useTaxasComissao();
-  const { leads } = useLeads();
-  const { cursos } = useCursos();
-  const [editingMeta, setEditingMeta] = useState(false);
-  const [novaMetaValor, setNovaMetaValor] = useState('');
-  const [taxaDialog, setTaxaDialog] = useState(false);
-  const [novaTaxa, setNovaTaxa] = useState({
-    taxa: 0,
-    vendedora_id: '',
-    curso_id: '',
-    tipo: 'Padrão' as 'Padrão' | 'Específica'
-  });
+  const { 
+    vendedoras, 
+    cursos,
+    metasGlobais,
+    taxasComissao,
+    anoSelecionado,
+    setAnoSelecionado,
+    getMetaGlobalByAno,
+    updateMetaGlobal,
+    calcRealizadoAno,
+    updateVendedoraMeta,
+    addTaxaComissao,
+    deleteTaxaComissao,
+  } = useApp();
 
-  const metaGlobal = metasGlobais.find(m => m.ano === anoSelecionado);
-  const realizado = leads
-    .filter(l => l.status === 'Inscrição Realizada' && l.data_conversao)
-    .reduce((sum, l) => sum + (l.valor_negociado ?? l.valor_proposta), 0);
+  const metaGlobal = getMetaGlobalByAno(anoSelecionado);
+  const realizado = calcRealizadoAno(anoSelecionado);
+  const somaMetas = vendedoras.reduce((sum, v) => sum + v.metaAnual, 0);
+  const excedeMetaGlobal = somaMetas > (metaGlobal?.valor ?? 0);
 
-  const handleUpdateMetaGlobal = async () => {
-    if (!metaGlobal) return;
-    await updateMetaGlobal({
-      id: metaGlobal.id,
-      valor: parseFloat(novaMetaValor)
+  // Estados para edição de Meta Global
+  const [formMetaValor, setFormMetaValor] = useState(metaGlobal?.valor ?? 0);
+  const [formMetaDescricao, setFormMetaDescricao] = useState(metaGlobal?.descricao ?? '');
+
+  // Estados para edição de Vendedora
+  const [isEditVendedoraOpen, setIsEditVendedoraOpen] = useState(false);
+  const [editingVendedora, setEditingVendedora] = useState<any>(null);
+  const [formMetaMensal, setFormMetaMensal] = useState(0);
+  const [formMetaAnual, setFormMetaAnual] = useState(0);
+
+  // Estados para adicionar Taxa de Comissão
+  const [isAddTaxaOpen, setIsAddTaxaOpen] = useState(false);
+  const [formTaxa, setFormTaxa] = useState(5.0);
+  const [formVendedoraId, setFormVendedoraId] = useState<number | undefined>(undefined);
+  const [formCursoId, setFormCursoId] = useState<number | undefined>(undefined);
+
+  // Atualizar quando o ano mudar
+  const handleAnoChange = (ano: string) => {
+    setAnoSelecionado(Number(ano));
+    const novaMeta = getMetaGlobalByAno(Number(ano));
+    setFormMetaValor(novaMeta?.valor ?? 0);
+    setFormMetaDescricao(novaMeta?.descricao ?? '');
+  };
+
+  // Atualizar Meta Global
+  const handleUpdateMetaGlobal = () => {
+    if (formMetaValor <= 0) {
+      toast({
+        title: "Erro",
+        description: "O valor da meta deve ser maior que zero",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    updateMetaGlobal(anoSelecionado, {
+      valor: formMetaValor,
+      descricao: formMetaDescricao
     });
-    setEditingMeta(false);
-  };
 
-  const calcRealizadoVendedora = (vendedoraId: string) => {
-    return leads
-      .filter(l => l.vendedora_id === vendedoraId && l.status === 'Inscrição Realizada')
-      .reduce((sum, l) => sum + (l.valor_negociado ?? l.valor_proposta), 0);
-  };
-
-  const handleAddTaxa = async () => {
-    await addTaxaComissao({
-      taxa: novaTaxa.taxa,
-      vendedora_id: novaTaxa.vendedora_id || null,
-      curso_id: novaTaxa.curso_id || null,
-      tipo: novaTaxa.tipo
+    toast({
+      title: "Sucesso",
+      description: "Meta global atualizada com sucesso!"
     });
-    setTaxaDialog(false);
-    setNovaTaxa({ taxa: 0, vendedora_id: '', curso_id: '', tipo: 'Padrão' });
   };
 
-  const getTaxaLabel = (taxa: any) => {
-    if (!taxa.vendedora_id && !taxa.curso_id) return '🌐 Padrão Geral';
-    if (taxa.vendedora_id && taxa.curso_id) {
-      const vendedora = vendedoras.find(v => v.id === taxa.vendedora_id);
-      const curso = cursos.find(c => c.id === taxa.curso_id);
-      return `🎯 ${vendedora?.nome} → ${curso?.tema}`;
+  // Editar Meta de Vendedora
+  const handleEditVendedora = (vendedora: any) => {
+    setEditingVendedora(vendedora);
+    setFormMetaMensal(vendedora.metaMensal);
+    setFormMetaAnual(vendedora.metaAnual);
+    setIsEditVendedoraOpen(true);
+  };
+
+  const handleSaveVendedoraMeta = () => {
+    if (formMetaMensal <= 0 || formMetaAnual <= 0) {
+      toast({
+        title: "Erro",
+        description: "As metas devem ser maiores que zero",
+        variant: "destructive"
+      });
+      return;
     }
-    if (taxa.vendedora_id) {
-      const vendedora = vendedoras.find(v => v.id === taxa.vendedora_id);
-      return `👤 ${vendedora?.nome}`;
+
+    updateVendedoraMeta(editingVendedora.id, formMetaMensal, formMetaAnual);
+    
+    toast({
+      title: "Sucesso",
+      description: "Meta da vendedora atualizada com sucesso!"
+    });
+
+    setIsEditVendedoraOpen(false);
+  };
+
+  // Adicionar Taxa de Comissão
+  const handleAddTaxa = () => {
+    if (formTaxa <= 0 || formTaxa > 100) {
+      toast({
+        title: "Erro",
+        description: "A taxa deve estar entre 0% e 100%",
+        variant: "destructive"
+      });
+      return;
     }
-    if (taxa.curso_id) {
-      const curso = cursos.find(c => c.id === taxa.curso_id);
-      return `📚 ${curso?.tema}`;
-    }
-    return '-';
+
+    const tipo: 'Padrão' | 'Específica' = (!formVendedoraId && !formCursoId) ? 'Padrão' : 'Específica';
+
+    addTaxaComissao({
+      taxa: formTaxa,
+      vendedoraId: formVendedoraId,
+      cursoId: formCursoId,
+      tipo
+    });
+
+    toast({
+      title: "Sucesso",
+      description: "Taxa de comissão adicionada com sucesso!"
+    });
+
+    // Reset
+    setFormTaxa(5.0);
+    setFormVendedoraId(undefined);
+    setFormCursoId(undefined);
+    setIsAddTaxaOpen(false);
+  };
+
+  const handleDeleteTaxa = (id: number) => {
+    deleteTaxaComissao(id);
+    toast({
+      title: "Sucesso",
+      description: "Taxa de comissão removida com sucesso!"
+    });
+  };
+
+  const calcPercentualGlobal = (metaAnual: number): number => {
+    const metaGlobalValor = metaGlobal?.valor ?? 1;
+    return metaGlobalValor > 0 ? Math.round((metaAnual / metaGlobalValor) * 100) : 0;
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="flex justify-between items-start mb-6">
+        <div>
           <h1 className="text-4xl font-bold text-foreground mb-2">Gestão de Metas</h1>
-          <p className="text-muted-foreground">Configure metas e comissões</p>
+          <p className="text-muted-foreground">Configure e monitore as metas da empresa e vendedoras</p>
         </div>
+        <div className="w-32">
+          <Select value={anoSelecionado.toString()} onValueChange={handleAnoChange}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2024">2024</SelectItem>
+              <SelectItem value="2025">2025</SelectItem>
+              <SelectItem value="2026">2026</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-        {/* Meta Global */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Meta Anual {anoSelecionado}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              {editingMeta ? (
-                <>
-                  <Input
-                    type="number"
-                    value={novaMetaValor}
-                    onChange={e => setNovaMetaValor(e.target.value)}
-                    className="max-w-xs"
+      {/* Alerta Condicional */}
+      {excedeMetaGlobal && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Atenção!</strong> A soma das metas individuais ({formatCurrency(somaMetas)}) excede a meta global ({formatCurrency(metaGlobal?.valor ?? 0)}).
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Tabs */}
+      <Tabs defaultValue="meta-global" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsTrigger value="meta-global" className="flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            Meta Global
+          </TabsTrigger>
+          <TabsTrigger value="vendedores" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Metas por Vendedor
+          </TabsTrigger>
+          <TabsTrigger value="comissoes" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            Comissões
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Aba Meta Global */}
+        <TabsContent value="meta-global">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Visualização */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  Meta Global {anoSelecionado}
+                </CardTitle>
+                <CardDescription>Objetivo anual da empresa</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <div className="text-4xl font-bold text-primary mb-4">
+                    {formatCurrency(metaGlobal?.valor ?? 0)}
+                  </div>
+                  
+                  <ProgressBar 
+                    current={realizado} 
+                    target={metaGlobal?.valor ?? 1}
                   />
-                  <Button onClick={handleUpdateMetaGlobal}>Salvar</Button>
-                  <Button variant="outline" onClick={() => setEditingMeta(false)}>Cancelar</Button>
-                </>
-              ) : (
-                <>
-                  <div className="flex-1">
-                    <div className="flex justify-between mb-2">
-                      <span className="text-2xl font-bold">{formatCurrency(realizado)}</span>
-                      <span className="text-muted-foreground">{formatCurrency(metaGlobal?.valor ?? 0)}</span>
-                    </div>
-                    <Progress value={metaGlobal?.valor ? (realizado / metaGlobal.valor) * 100 : 0} className="h-3" />
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {metaGlobal?.valor ? Math.round((realizado / metaGlobal.valor) * 100) : 0}% atingido
+                  
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Realizado: {formatCurrency(realizado)} ({metaGlobal?.valor ? Math.round((realizado / metaGlobal.valor) * 100) : 0}%)
+                  </p>
+                </div>
+
+                {metaGlobal?.descricao && (
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {metaGlobal.descricao}
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setNovaMetaValor(metaGlobal?.valor?.toString() ?? '0');
-                      setEditingMeta(true);
-                    }}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Metas de Vendedoras */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Metas por Vendedora
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Vendedora</TableHead>
-                  <TableHead className="text-right">Meta Mensal</TableHead>
-                  <TableHead className="text-right">Meta Anual</TableHead>
-                  <TableHead className="text-right">Realizado</TableHead>
-                  <TableHead>Progresso</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {vendedoras.map(vendedora => {
-                  const realizado = calcRealizadoVendedora(vendedora.id);
-                  const percentual = vendedora.meta_anual > 0 ? (realizado / vendedora.meta_anual) * 100 : 0;
-                  
-                  return (
-                    <TableRow key={vendedora.id}>
-                      <TableCell className="font-medium">{vendedora.nome}</TableCell>
+            {/* Edição */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Editar Meta Global</CardTitle>
+                <CardDescription>Altere o valor e a descrição da meta</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="meta-valor">Meta Anual (R$)</Label>
+                  <Input
+                    id="meta-valor"
+                    type="number"
+                    value={formMetaValor}
+                    onChange={(e) => setFormMetaValor(Number(e.target.value))}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="meta-descricao">Descrição</Label>
+                  <Textarea
+                    id="meta-descricao"
+                    value={formMetaDescricao}
+                    onChange={(e) => setFormMetaDescricao(e.target.value)}
+                    rows={4}
+                    className="mt-2"
+                    placeholder="Descreva o significado ou recompensas ao atingir a meta..."
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleUpdateMetaGlobal} 
+                  className="w-full bg-accent hover:bg-accent/90"
+                >
+                  Atualizar Meta
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Aba Metas por Vendedor */}
+        <TabsContent value="vendedores">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>Metas por Vendedor - {anoSelecionado}</CardTitle>
+                  <CardDescription className="mt-2">
+                    Total das metas individuais: <span className="font-semibold text-foreground">{formatCurrency(somaMetas)}</span>
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Vendedor</TableHead>
+                    <TableHead className="text-right">Meta Mensal</TableHead>
+                    <TableHead className="text-right">Meta Anual</TableHead>
+                    <TableHead className="text-right">% da Meta Global</TableHead>
+                    <TableHead className="text-center">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vendedoras.map((v) => (
+                    <TableRow key={v.id}>
+                      <TableCell className="font-medium">{v.nome}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(v.metaMensal)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(v.metaAnual)}</TableCell>
                       <TableCell className="text-right">
-                        <Input
-                          type="number"
-                          className="w-32 ml-auto"
-                          value={vendedora.meta_mensal}
-                          onChange={e => updateVendedora({
-                            id: vendedora.id,
-                            meta_mensal: parseFloat(e.target.value)
-                          })}
-                        />
+                        <Badge variant="secondary">{calcPercentualGlobal(v.metaAnual)}%</Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Input
-                          type="number"
-                          className="w-32 ml-auto"
-                          value={vendedora.meta_anual}
-                          onChange={e => updateVendedora({
-                            id: vendedora.id,
-                            meta_anual: parseFloat(e.target.value)
-                          })}
-                        />
-                      </TableCell>
-                      <TableCell className="text-right font-bold">
-                        {formatCurrency(realizado)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <Progress value={Math.min(percentual, 100)} className="h-2" />
-                          <p className="text-xs text-right">{percentual.toFixed(0)}%</p>
-                        </div>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditVendedora(v)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        {/* Taxas de Comissão */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Taxas de Comissão</CardTitle>
-              <Dialog open={taxaDialog} onOpenChange={setTaxaDialog}>
-                <DialogTrigger asChild>
-                  <Button size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nova Taxa
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Nova Taxa de Comissão</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Taxa (%)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={novaTaxa.taxa}
-                        onChange={e => setNovaTaxa({ ...novaTaxa, taxa: parseFloat(e.target.value) })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Vendedora (opcional)</Label>
-                      <Select value={novaTaxa.vendedora_id} onValueChange={v => setNovaTaxa({ ...novaTaxa, vendedora_id: v })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Todas" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">Todas</SelectItem>
-                          {vendedoras.map(v => (
-                            <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Curso (opcional)</Label>
-                      <Select value={novaTaxa.curso_id} onValueChange={v => setNovaTaxa({ ...novaTaxa, curso_id: v })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Todos" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">Todos</SelectItem>
-                          {cursos.map(c => (
-                            <SelectItem key={c.id} value={c.id}>{c.tema}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button onClick={handleAddTaxa} className="w-full">Criar</Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tipo / Aplicação</TableHead>
-                  <TableHead className="text-right">Taxa</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {taxasComissao.map(taxa => (
-                  <TableRow key={taxa.id}>
-                    <TableCell>{getTaxaLabel(taxa)}</TableCell>
-                    <TableCell className="text-right font-bold">{taxa.taxa}%</TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => deleteTaxaComissao(taxa.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
+        {/* Aba Comissões */}
+        <TabsContent value="comissoes">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>Taxas de Comissão</CardTitle>
+                  <CardDescription>Configure as taxas de comissão padrão e específicas</CardDescription>
+                </div>
+                <Button onClick={() => setIsAddTaxaOpen(true)} className="bg-accent hover:bg-accent/90">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Taxa
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Taxa</TableHead>
+                    <TableHead>Vendedor</TableHead>
+                    <TableHead>Curso</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+                </TableHeader>
+                <TableBody>
+                  {taxasComissao.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="font-semibold">{t.taxa}%</TableCell>
+                      <TableCell>
+                        {t.vendedoraId 
+                          ? vendedoras.find(v => v.id === t.vendedoraId)?.nome 
+                          : <span className="text-muted-foreground">Todos</span>
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {t.cursoId 
+                          ? cursos.find(c => c.id === t.cursoId)?.tema 
+                          : <span className="text-muted-foreground">Todos</span>
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={t.tipo === 'Padrão' ? 'default' : 'secondary'}>
+                          {t.tipo}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteTaxa(t.id)}
+                          disabled={t.tipo === 'Padrão' && taxasComissao.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialog Editar Vendedora */}
+      <Dialog open={isEditVendedoraOpen} onOpenChange={setIsEditVendedoraOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Meta - {editingVendedora?.nome}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label htmlFor="meta-mensal">Meta Mensal (R$)</Label>
+              <Input
+                id="meta-mensal"
+                type="number"
+                value={formMetaMensal}
+                onChange={(e) => setFormMetaMensal(Number(e.target.value))}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="meta-anual">Meta Anual (R$)</Label>
+              <Input
+                id="meta-anual"
+                type="number"
+                value={formMetaAnual}
+                onChange={(e) => setFormMetaAnual(Number(e.target.value))}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditVendedoraOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveVendedoraMeta} className="bg-accent hover:bg-accent/90">
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Adicionar Taxa */}
+      <Dialog open={isAddTaxaOpen} onOpenChange={setIsAddTaxaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Taxa de Comissão</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label htmlFor="taxa">Taxa (%)</Label>
+              <Input
+                id="taxa"
+                type="number"
+                step="0.1"
+                value={formTaxa}
+                onChange={(e) => setFormTaxa(Number(e.target.value))}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="vendedora">Vendedor (opcional)</Label>
+              <Select 
+                value={formVendedoraId?.toString() ?? "todos"} 
+                onValueChange={(value) => setFormVendedoraId(value === "todos" ? undefined : Number(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {vendedoras.map(v => (
+                    <SelectItem key={v.id} value={v.id.toString()}>{v.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="curso">Curso (opcional)</Label>
+              <Select 
+                value={formCursoId?.toString() ?? "todos"} 
+                onValueChange={(value) => setFormCursoId(value === "todos" ? undefined : Number(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {cursos.map(c => (
+                    <SelectItem key={c.id} value={c.id.toString()}>{c.tema}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              💡 Dica: Deixe ambos em "Todos" para criar uma taxa padrão.
+            </p>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddTaxaOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddTaxa} className="bg-accent hover:bg-accent/90">
+              Adicionar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,134 +1,253 @@
-import { usePerformanceVendedoras } from '@/hooks/usePerformanceVendedoras';
+import { useState } from 'react';
+import { useApp } from '@/contexts/AppContext';
 import { KPICard } from '@/components/common/KPICard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Progress } from '@/components/ui/progress';
-import { TrendingUp, Target, Users, DollarSign } from 'lucide-react';
-import { formatCurrency } from '@/utils/calculations';
-import { Badge } from '@/components/ui/badge';
+import { ProgressBar } from '@/components/common/ProgressBar';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Trophy, TrendingUp, DollarSign, Users, Edit2, Check } from 'lucide-react';
+import {
+  calculateFaturamentoByVendedora,
+  calculateInscricoesByVendedora,
+  calculateComissao,
+  calculateTotalFaturamento,
+  calculateTotalInscricoes,
+  formatCurrency,
+} from '@/utils/calculations';
+import { Vendedora } from '@/data/mockData';
 
 export default function Performance() {
-  const { performance, isLoading } = usePerformanceVendedoras();
+  const { leads, vendedoras, updateVendedoraMeta } = useApp();
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editValues, setEditValues] = useState({ metaMensal: 0, metaAnual: 0 });
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-lg text-muted-foreground">Carregando performance...</p>
-      </div>
-    );
-  }
+  const totalFaturamento = calculateTotalFaturamento(leads);
+  const totalInscricoes = calculateTotalInscricoes(leads);
+  const metaTotal = vendedoras.reduce((sum, v) => sum + v.metaAnual, 0);
 
-  const totalFaturamento = performance.reduce((sum, v) => sum + v.faturamento_total, 0);
-  const taxaConversaoMedia = performance.length > 0
-    ? performance.reduce((sum, v) => sum + v.taxa_conversao, 0) / performance.length
-    : 0;
-  const melhorVendedora = performance[0];
+  const vendedorasComPerformance = vendedoras.map(vendedora => {
+    const faturamento = calculateFaturamentoByVendedora(leads, vendedora.id);
+    const inscricoes = calculateInscricoesByVendedora(leads, vendedora.id);
+    const comissao = calculateComissao(faturamento);
+    const progressao = vendedora.metaAnual > 0 ? (faturamento / vendedora.metaAnual) * 100 : 0;
+
+    return {
+      ...vendedora,
+      faturamento,
+      inscricoes,
+      comissao,
+      progressao,
+    };
+  }).sort((a, b) => b.faturamento - a.faturamento);
+
+  const handleEdit = (vendedora: Vendedora) => {
+    setEditingId(vendedora.id);
+    setEditValues({
+      metaMensal: vendedora.metaMensal,
+      metaAnual: vendedora.metaAnual,
+    });
+  };
+
+  const handleSave = (id: number) => {
+    updateVendedoraMeta(id, editValues.metaMensal, editValues.metaAnual);
+    setEditingId(null);
+  };
+
+  const getMedalIcon = (position: number) => {
+    switch (position) {
+      case 0:
+        return '🥇';
+      case 1:
+        return '🥈';
+      case 2:
+        return '🥉';
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">Performance de Vendedoras</h1>
-          <p className="text-muted-foreground">Análise detalhada de resultados e metas</p>
+          <h1 className="text-3xl font-bold text-foreground">Performance de Vendas</h1>
+          <p className="text-muted-foreground mt-2">Acompanhe o desempenho individual e do time</p>
         </div>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* KPIs Gerais */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <KPICard
+            title="Inscrições do Time"
+            value={totalInscricoes}
+            icon={Users}
+            variant="success"
+          />
+          
           <KPICard
             title="Faturamento Total"
             value={formatCurrency(totalFaturamento)}
             icon={DollarSign}
-            variant="success"
-          />
-          <KPICard
-            title="Taxa de Conversão Média"
-            value={`${taxaConversaoMedia.toFixed(1)}%`}
-            icon={TrendingUp}
             variant="accent"
           />
+          
           <KPICard
-            title="Melhor Vendedora"
-            value={melhorVendedora?.nome || '-'}
-            icon={Target}
-            subtitle={melhorVendedora ? formatCurrency(melhorVendedora.faturamento_total) : ''}
+            title="Meta Total"
+            value={formatCurrency(metaTotal)}
+            icon={TrendingUp}
+            variant="default"
+          />
+          
+          <KPICard
+            title="Progressão"
+            value={`${((totalFaturamento / metaTotal) * 100).toFixed(1)}%`}
+            icon={Trophy}
+            variant="default"
           />
         </div>
 
-        {/* Tabela de Performance */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Ranking de Vendedoras
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">#</TableHead>
-                  <TableHead>Vendedora</TableHead>
-                  <TableHead className="text-right">Leads</TableHead>
-                  <TableHead className="text-right">Convertidos</TableHead>
-                  <TableHead className="text-right">Taxa Conv.</TableHead>
-                  <TableHead className="text-right">Inscrições</TableHead>
-                  <TableHead className="text-right">Faturamento</TableHead>
-                  <TableHead className="text-right">Meta Anual</TableHead>
-                  <TableHead>Progresso</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {performance.map((vendedora, index) => {
-                  const percentualMeta = vendedora.meta_anual > 0
-                    ? (vendedora.faturamento_total / vendedora.meta_anual) * 100
-                    : 0;
+        {/* Meta Total do Time */}
+        <Card className="p-6 mb-8 bg-gradient-to-br from-primary/5 to-accent/5 border-2 border-primary/20">
+          <h2 className="text-xl font-bold text-foreground mb-4">Progressão da Meta Total do Time</h2>
+          <ProgressBar
+            current={totalFaturamento}
+            target={metaTotal}
+            gradient={true}
+          />
+        </Card>
 
-                  return (
-                    <TableRow key={vendedora.id}>
-                      <TableCell className="font-bold">{index + 1}º</TableCell>
-                      <TableCell>
+        {/* Ranking */}
+        <div>
+          <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center">
+            <Trophy className="h-6 w-6 mr-2 text-accent" />
+            Ranking Top Sellers
+          </h2>
+
+          <div className="space-y-4">
+            {vendedorasComPerformance.map((vendedora, index) => {
+              const isEditing = editingId === vendedora.id;
+              const medal = getMedalIcon(index);
+              const isTop3 = index < 3;
+
+              return (
+                <Card
+                  key={vendedora.id}
+                  className={`p-6 transition-all ${
+                    isTop3
+                      ? 'bg-gradient-to-r from-primary/5 to-accent/5 border-2 border-accent/30 shadow-elegant'
+                      : 'hover:shadow-lg'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4 flex-1">
+                      {/* Posição */}
+                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground font-bold text-lg">
+                        {medal || `${index + 1}º`}
+                      </div>
+
+                      {/* Nome */}
+                      <div className="w-48">
+                        <h3 className="text-lg font-bold text-foreground">{vendedora.nome}</h3>
+                      </div>
+
+                      {/* Métricas */}
+                      <div className="hidden md:grid grid-cols-5 gap-4 flex-1">
                         <div>
-                          <p className="font-medium">{vendedora.nome}</p>
-                          <p className="text-xs text-muted-foreground">{vendedora.email}</p>
+                          <p className="text-xs text-muted-foreground">Inscrições</p>
+                          <p className="text-lg font-semibold">{vendedora.inscricoes}</p>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">{vendedora.total_leads}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="secondary">{vendedora.leads_convertidos}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant={vendedora.taxa_conversao >= 50 ? "default" : "outline"}>
-                          {vendedora.taxa_conversao.toFixed(1)}%
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">{vendedora.total_inscricoes}</TableCell>
-                      <TableCell className="text-right font-bold text-primary">
-                        {formatCurrency(vendedora.faturamento_total)}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {formatCurrency(vendedora.meta_anual)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <Progress value={Math.min(percentualMeta, 100)} className="h-2" />
-                          <p className="text-xs text-muted-foreground text-right">
-                            {percentualMeta.toFixed(0)}%
+
+                        <div>
+                          <p className="text-xs text-muted-foreground">Faturamento</p>
+                          <p className="text-lg font-semibold text-accent">
+                            {formatCurrency(vendedora.faturamento)}
                           </p>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
 
-            {performance.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">Nenhuma vendedora cadastrada ainda</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Meta</p>
+                          {isEditing ? (
+                            <Input
+                              type="number"
+                              value={editValues.metaAnual}
+                              onChange={(e) => setEditValues({ ...editValues, metaAnual: Number(e.target.value) })}
+                              className="h-8 text-sm"
+                            />
+                          ) : (
+                            <p className="text-lg font-semibold">{formatCurrency(vendedora.metaAnual)}</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Progressão</p>
+                          <div className="space-y-1 w-40">
+                            <ProgressBar
+                              current={vendedora.faturamento}
+                              target={vendedora.metaAnual}
+                              showPercentage={false}
+                              compact={true}
+                            />
+                            <div className="text-xs text-muted-foreground space-y-0.5">
+                              <p className="truncate">Real: {formatCurrency(vendedora.faturamento)}</p>
+                              <p className="truncate">Meta: {formatCurrency(vendedora.metaAnual)}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-muted-foreground">Comissão (5%)</p>
+                          <p className="text-lg font-semibold text-success">
+                            {formatCurrency(vendedora.comissao)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botão Editar */}
+                    <div className="ml-4">
+                      {isEditing ? (
+                        <Button
+                          onClick={() => handleSave(vendedora.id)}
+                          size="sm"
+                          className="bg-success hover:bg-success/90"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => handleEdit(vendedora)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mobile View */}
+                  <div className="md:hidden mt-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Inscrições</p>
+                      <p className="font-semibold">{vendedora.inscricoes}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Faturamento</p>
+                      <p className="font-semibold text-accent">{formatCurrency(vendedora.faturamento)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Meta</p>
+                      <p className="font-semibold">{formatCurrency(vendedora.metaAnual)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Comissão</p>
+                      <p className="font-semibold text-success">{formatCurrency(vendedora.comissao)}</p>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
