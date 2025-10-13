@@ -54,9 +54,9 @@ export default function Dashboard() {
     status: 'Planejado',
   });
 
-  const cursosAtivos = cursos.filter(c => 
-    c.status === 'Inscrições Abertas' || c.status === 'Em Andamento'
-  );
+  const cursosAtivos = cursos
+    .filter(c => c.status === 'Inscrições Abertas' || c.status === 'Em Andamento')
+    .sort((a, b) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime());
 
   const totalFaturamento = calculateTotalFaturamento(leads);
   const totalInscricoes = calculateTotalInscricoes(leads);
