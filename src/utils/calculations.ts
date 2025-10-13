@@ -1,67 +1,70 @@
-import { Lead, Vendedora, Curso } from '@/data/mockData';
+import { Lead as SupabaseLead } from '@/hooks/useLeads';
+
+// Aceita IDs como string (Supabase) ou number (legacy)
+type FlexibleId = string | number;
 
 // Calcula inscrições realizadas de um curso dinamicamente a partir dos leads
-export const getInscricoesCurso = (leads: Lead[], cursoId: number): number => {
+export const getInscricoesCurso = (leads: SupabaseLead[], cursoId: FlexibleId): number => {
   return leads
-    .filter(l => l.cursoId === cursoId && l.status === 'Inscrição Realizada')
-    .reduce((sum, l) => sum + l.quantidadeInscricoes, 0);
+    .filter(l => l.curso_id === cursoId && l.status === 'Inscrição Realizada')
+    .reduce((sum, l) => sum + (l.quantidade_inscricoes || 0), 0);
 };
 
 // Calcula faturamento de um curso a partir dos leads com inscrições realizadas
-export const getFaturamentoCurso = (leads: Lead[], cursoId: number): number => {
+export const getFaturamentoCurso = (leads: SupabaseLead[], cursoId: FlexibleId): number => {
   return leads
-    .filter(l => l.cursoId === cursoId && l.status === 'Inscrição Realizada')
-    .reduce((sum, l) => sum + (l.valorNegociado ?? l.valorProposta), 0);
+    .filter(l => l.curso_id === cursoId && l.status === 'Inscrição Realizada')
+    .reduce((sum, l) => sum + (l.valor_negociado ?? l.valor_proposta), 0);
 };
 
 export const calculateComissao = (faturamento: number): number => {
   return faturamento * 0.05;
 };
 
-export const calculateFaturamentoByVendedora = (leads: Lead[], vendedoraId: number): number => {
+export const calculateFaturamentoByVendedora = (leads: SupabaseLead[], vendedoraId: FlexibleId): number => {
   return leads
-    .filter(l => l.vendedoraId === vendedoraId && l.status === 'Inscrição Realizada')
-    .reduce((sum, l) => sum + (l.valorNegociado ?? l.valorProposta), 0);
+    .filter(l => l.vendedora_id === vendedoraId && l.status === 'Inscrição Realizada')
+    .reduce((sum, l) => sum + (l.valor_negociado ?? l.valor_proposta), 0);
 };
 
-export const calculateInscricoesByVendedora = (leads: Lead[], vendedoraId: number): number => {
+export const calculateInscricoesByVendedora = (leads: SupabaseLead[], vendedoraId: FlexibleId): number => {
   return leads
-    .filter(l => l.vendedoraId === vendedoraId && l.status === 'Inscrição Realizada')
-    .reduce((sum, l) => sum + l.quantidadeInscricoes, 0);
+    .filter(l => l.vendedora_id === vendedoraId && l.status === 'Inscrição Realizada')
+    .reduce((sum, l) => sum + (l.quantidade_inscricoes || 0), 0);
 };
 
-export const calculateTotalFaturamento = (leads: Lead[]): number => {
-  return leads
-    .filter(l => l.status === 'Inscrição Realizada')
-    .reduce((sum, l) => sum + (l.valorNegociado ?? l.valorProposta), 0);
-};
-
-export const calculateTotalInscricoes = (leads: Lead[]): number => {
+export const calculateTotalFaturamento = (leads: SupabaseLead[]): number => {
   return leads
     .filter(l => l.status === 'Inscrição Realizada')
-    .reduce((sum, l) => sum + l.quantidadeInscricoes, 0);
+    .reduce((sum, l) => sum + (l.valor_negociado ?? l.valor_proposta), 0);
 };
 
-export const calculateReceitaPotencial = (leads: Lead[]): number => {
+export const calculateTotalInscricoes = (leads: SupabaseLead[]): number => {
+  return leads
+    .filter(l => l.status === 'Inscrição Realizada')
+    .reduce((sum, l) => sum + (l.quantidade_inscricoes || 0), 0);
+};
+
+export const calculateReceitaPotencial = (leads: SupabaseLead[]): number => {
   return leads
     .filter(l => l.status === 'Proposta Enviada')
-    .reduce((sum, l) => sum + (l.valorNegociado ?? l.valorProposta), 0);
+    .reduce((sum, l) => sum + (l.valor_negociado ?? l.valor_proposta), 0);
 };
 
-export const calculateTaxaConversao = (leads: Lead[]): number => {
+export const calculateTaxaConversao = (leads: SupabaseLead[]): number => {
   const total = leads.filter(l => l.status !== 'Proposta Enviada').length;
   const convertidos = leads.filter(l => l.status === 'Inscrição Realizada').length;
   return total > 0 ? (convertidos / total) * 100 : 0;
 };
 
-export const calculateCicloVendas = (leads: Lead[]): number => {
-  const convertidos = leads.filter(l => l.status === 'Inscrição Realizada' && l.dataConversao);
+export const calculateCicloVendas = (leads: SupabaseLead[]): number => {
+  const convertidos = leads.filter(l => l.status === 'Inscrição Realizada' && l.data_conversao);
   
   if (convertidos.length === 0) return 0;
   
   const totalDias = convertidos.reduce((sum, l) => {
-    const cadastro = new Date(l.dataCadastro);
-    const conversao = new Date(l.dataConversao!);
+    const cadastro = new Date(l.data_cadastro);
+    const conversao = new Date(l.data_conversao!);
     const diff = Math.floor((conversao.getTime() - cadastro.getTime()) / (1000 * 60 * 60 * 24));
     return sum + diff;
   }, 0);

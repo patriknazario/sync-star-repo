@@ -1,25 +1,25 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/common/StatusBadge';
-import { Curso, Professor } from '@/data/mockData';
+import { Curso } from '@/hooks/useCursos';
 import { Calendar, MapPin, User, Users, AlertTriangle, Plus, Edit, DollarSign } from 'lucide-react';
-import { formatDate, shouldShowViabilityAlert, getFaturamentoCurso, formatCurrency } from '@/utils/calculations';
-import { useApp } from '@/contexts/AppContext';
+import { formatDate, shouldShowViabilityAlert, getFaturamentoCurso, formatCurrency, getInscricoesCurso } from '@/utils/calculations';
+import { useLeads } from '@/hooks/useLeads';
 import { useNavigate } from 'react-router-dom';
 
 interface CursoCardProps {
   curso: Curso;
-  professor?: Professor;
-  onAddLead: (cursoId: number) => void;
-  onEdit: (cursoId: number) => void;
+  professorNome?: string;
+  onAddLead: (cursoId: string) => void;
+  onEdit: (cursoId: string) => void;
 }
 
-export function CursoCard({ curso, professor, onAddLead, onEdit }: CursoCardProps) {
-  const { getInscricoesCurso, leads } = useApp();
+export function CursoCard({ curso, professorNome, onAddLead, onEdit }: CursoCardProps) {
+  const { leads } = useLeads();
   const navigate = useNavigate();
-  const inscricoes = getInscricoesCurso(curso.id);
+  const inscricoes = getInscricoesCurso(leads, curso.id);
   const faturamento = getFaturamentoCurso(leads, curso.id);
-  const showAlert = shouldShowViabilityAlert(inscricoes, curso.dataInicio);
+  const showAlert = shouldShowViabilityAlert(inscricoes, curso.data_inicio);
 
   const handleCardClick = () => {
     navigate(`/curso/${curso.id}`);
@@ -60,7 +60,7 @@ export function CursoCard({ curso, professor, onAddLead, onEdit }: CursoCardProp
       <div className="space-y-2 mb-4">
         <div className="flex items-center text-sm text-muted-foreground">
           <User className="h-4 w-4 mr-2 text-primary" />
-          <span>{professor?.nome || 'Professor não encontrado'}</span>
+          <span>{professorNome || 'Professor não encontrado'}</span>
         </div>
         
         <div className="flex items-center text-sm text-muted-foreground">
@@ -70,7 +70,7 @@ export function CursoCard({ curso, professor, onAddLead, onEdit }: CursoCardProp
         
         <div className="flex items-center text-sm text-muted-foreground">
           <Calendar className="h-4 w-4 mr-2 text-primary" />
-          <span>{formatDate(curso.dataInicio)} - {formatDate(curso.dataTermino)}</span>
+          <span>{formatDate(curso.data_inicio)} - {formatDate(curso.data_termino)}</span>
         </div>
         
         <div className="flex items-center text-sm text-foreground font-semibold">
