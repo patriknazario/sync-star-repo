@@ -55,7 +55,16 @@ export default function Cursos() {
     const matchesStatus = statusFilter === 'all' || curso.status === statusFilter;
     
     return matchesSearch && matchesStatus;
-  });
+  }).sort((a, b) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime());
+
+  // Separar cursos ativos dos inativos (Cancelados e Concluídos)
+  const cursosAtivos = filteredCursos.filter(c => 
+    c.status !== 'Cancelado' && c.status !== 'Concluído'
+  );
+  
+  const cursosInativos = filteredCursos.filter(c => 
+    c.status === 'Cancelado' || c.status === 'Concluído'
+  );
 
   const handleOpenDialog = (curso?: Curso) => {
     if (curso) {
@@ -176,66 +185,141 @@ export default function Cursos() {
           </div>
         </Card>
 
-        {/* Cursos List */}
-        <div className="grid grid-cols-1 gap-4">
-          {filteredCursos.map((curso) => {
-            const professor = professores.find(p => p.id === curso.professorId);
-            return (
-              <Card key={curso.id} className="p-6 hover:shadow-lg transition-all">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-xl font-bold text-foreground">{curso.tema}</h3>
-                      <StatusBadge status={curso.status} />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Professor</p>
-                        <p className="font-medium">{professor?.nome}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Localização</p>
-                        <p className="font-medium">{curso.cidade}, {curso.estado}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Período</p>
-                        <p className="font-medium">{formatDate(curso.dataInicio)} - {formatDate(curso.dataTermino)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Valor</p>
-                        <p className="font-medium text-accent">{formatCurrency(curso.valorInscricao)}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-4">
-                      <p className="text-xs text-muted-foreground">Descrição</p>
-                      <p className="text-sm mt-1">{curso.descricao}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col space-y-2 ml-4">
-                    <Button
-                      onClick={() => handleOpenDialog(curso)}
-                      variant="outline"
-                      size="sm"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(curso.id)}
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+        {/* Cursos Ativos */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-foreground mb-4">Cursos Ativos</h2>
+          <div className="grid grid-cols-1 gap-4">
+            {cursosAtivos.length === 0 ? (
+              <Card className="p-8 text-center">
+                <p className="text-muted-foreground">Nenhum curso ativo encontrado</p>
               </Card>
-            );
-          })}
+            ) : (
+              cursosAtivos.map((curso) => {
+                const professor = professores.find(p => p.id === curso.professorId);
+                return (
+                  <Card key={curso.id} className="p-6 hover:shadow-lg transition-all">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-xl font-bold text-foreground">{curso.tema}</h3>
+                          <StatusBadge status={curso.status} />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Professor</p>
+                            <p className="font-medium">{professor?.nome}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Localização</p>
+                            <p className="font-medium">{curso.cidade}, {curso.estado}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Período</p>
+                            <p className="font-medium">{formatDate(curso.dataInicio)} - {formatDate(curso.dataTermino)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Valor</p>
+                            <p className="font-medium text-accent">{formatCurrency(curso.valorInscricao)}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4">
+                          <p className="text-xs text-muted-foreground">Descrição</p>
+                          <p className="text-sm mt-1">{curso.descricao}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col space-y-2 ml-4">
+                        <Button
+                          onClick={() => handleOpenDialog(curso)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(curso.id)}
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })
+            )}
+          </div>
         </div>
+
+        {/* Cursos Cancelados/Concluídos */}
+        {cursosInativos.length > 0 && (
+          <div>
+            <h2 className="text-2xl font-bold text-foreground mb-4">Cursos Cancelados/Concluídos</h2>
+            <div className="grid grid-cols-1 gap-4">
+              {cursosInativos.map((curso) => {
+                const professor = professores.find(p => p.id === curso.professorId);
+                return (
+                  <Card key={curso.id} className="p-6 hover:shadow-lg transition-all opacity-75">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-xl font-bold text-foreground">{curso.tema}</h3>
+                          <StatusBadge status={curso.status} />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Professor</p>
+                            <p className="font-medium">{professor?.nome}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Localização</p>
+                            <p className="font-medium">{curso.cidade}, {curso.estado}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Período</p>
+                            <p className="font-medium">{formatDate(curso.dataInicio)} - {formatDate(curso.dataTermino)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Valor</p>
+                            <p className="font-medium text-accent">{formatCurrency(curso.valorInscricao)}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4">
+                          <p className="text-xs text-muted-foreground">Descrição</p>
+                          <p className="text-sm mt-1">{curso.descricao}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col space-y-2 ml-4">
+                        <Button
+                          onClick={() => handleOpenDialog(curso)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(curso.id)}
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Dialog */}
