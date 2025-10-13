@@ -4,7 +4,7 @@ import { KPICard } from '@/components/common/KPICard';
 import { EstadosGrid } from '@/components/mapa/EstadosGrid';
 import { EstadoTopRanking } from '@/components/mapa/EstadoTopRanking';
 import { ConcentracaoRegional } from '@/components/mapa/ConcentracaoRegional';
-import { Map, MapPin } from 'lucide-react';
+import { Map as MapIcon, MapPin } from 'lucide-react';
 import { NOMES_ESTADOS, getRegiaoByEstado } from '@/data/estadosData';
 
 export default function MapaCursos() {
@@ -12,19 +12,19 @@ export default function MapaCursos() {
   const [selectedState, setSelectedState] = useState<string | null>(null);
 
   const estadosData = useMemo(() => {
-    const map = new Map<string, any>();
+    const dataMap = new Map<string, any>();
     cursos.forEach(curso => {
-      const existing = map.get(curso.estado) || {
+      const existing = dataMap.get(curso.estado) || {
         sigla: curso.estado,
         nome: NOMES_ESTADOS[curso.estado] || curso.estado,
         totalCursos: 0
       };
-      map.set(curso.estado, {
+      dataMap.set(curso.estado, {
         ...existing,
         totalCursos: existing.totalCursos + 1
       });
     });
-    return map;
+    return dataMap;
   }, [cursos]);
 
   const topEstados = useMemo(() => {
@@ -74,7 +74,7 @@ export default function MapaCursos() {
           <KPICard
             title="Total de Cursos"
             value={cursos.length.toString()}
-            icon={Map}
+            icon={MapIcon}
             variant="accent"
           />
           <KPICard
