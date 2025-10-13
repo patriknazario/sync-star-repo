@@ -5,6 +5,7 @@ import { Curso, Professor } from '@/data/mockData';
 import { Calendar, MapPin, User, Users, AlertTriangle, Plus, Edit, DollarSign } from 'lucide-react';
 import { formatDate, shouldShowViabilityAlert, getFaturamentoCurso, formatCurrency } from '@/utils/calculations';
 import { useApp } from '@/contexts/AppContext';
+import { useNavigate } from 'react-router-dom';
 
 interface CursoCardProps {
   curso: Curso;
@@ -15,12 +16,30 @@ interface CursoCardProps {
 
 export function CursoCard({ curso, professor, onAddLead, onEdit }: CursoCardProps) {
   const { getInscricoesCurso, leads } = useApp();
+  const navigate = useNavigate();
   const inscricoes = getInscricoesCurso(curso.id);
   const faturamento = getFaturamentoCurso(leads, curso.id);
   const showAlert = shouldShowViabilityAlert(inscricoes, curso.dataInicio);
 
+  const handleCardClick = () => {
+    navigate(`/curso/${curso.id}`);
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit(curso.id);
+  };
+
+  const handleAddLeadClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onAddLead(curso.id);
+  };
+
   return (
-    <Card className={`p-6 hover:shadow-lg transition-all ${showAlert ? 'border-warning border-2' : ''}`}>
+    <Card 
+      onClick={handleCardClick}
+      className={`p-6 hover:shadow-lg transition-all cursor-pointer ${showAlert ? 'border-warning border-2' : ''}`}
+    >
       {showAlert && (
         <div className="mb-4 p-3 bg-warning/10 border border-warning rounded-lg flex items-start space-x-2">
           <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
@@ -72,7 +91,7 @@ export function CursoCard({ curso, professor, onAddLead, onEdit }: CursoCardProp
 
       <div className="flex space-x-2">
         <Button
-          onClick={() => onAddLead(curso.id)}
+          onClick={handleAddLeadClick}
           className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -80,7 +99,7 @@ export function CursoCard({ curso, professor, onAddLead, onEdit }: CursoCardProp
         </Button>
         
         <Button
-          onClick={() => onEdit(curso.id)}
+          onClick={handleEditClick}
           variant="outline"
           className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
         >

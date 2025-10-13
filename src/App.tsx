@@ -7,6 +7,7 @@ import { AppProvider } from "@/contexts/AppContext";
 import { Navbar } from "@/components/layout/Navbar";
 import Dashboard from "./pages/Dashboard";
 import Cursos from "./pages/Cursos";
+import DetalheCurso from "./pages/DetalheCurso";
 import Professores from "./pages/Professores";
 import Performance from "./pages/Performance";
 import Analises from "./pages/Analises";
@@ -30,6 +31,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/cursos" element={<Cursos />} />
+              <Route path="/curso/:id" element={<DetalheCurso />} />
               <Route path="/professores" element={<Professores />} />
               <Route path="/performance" element={<Performance />} />
               <Route path="/analises" element={<Analises />} />

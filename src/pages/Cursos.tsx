@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -29,6 +30,7 @@ const estados = ['SP', 'RJ', 'MG', 'DF', 'BA', 'CE', 'PE', 'PR', 'RS', 'SC', 'GO
 
 export default function Cursos() {
   const { cursos, professores, addCurso, updateCurso, deleteCurso, getInscricoesCurso } = useApp();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -197,7 +199,11 @@ export default function Cursos() {
               cursosAtivos.map((curso) => {
                 const professor = professores.find(p => p.id === curso.professorId);
                 return (
-                  <Card key={curso.id} className="p-6 hover:shadow-lg transition-all">
+                  <Card 
+                    key={curso.id} 
+                    onClick={() => navigate(`/curso/${curso.id}`)}
+                    className="p-6 hover:shadow-lg transition-all cursor-pointer"
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
@@ -232,14 +238,20 @@ export default function Cursos() {
                       
                       <div className="flex flex-col space-y-2 ml-4">
                         <Button
-                          onClick={() => handleOpenDialog(curso)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenDialog(curso);
+                          }}
                           variant="outline"
                           size="sm"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
-                          onClick={() => handleDelete(curso.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(curso.id);
+                          }}
                           variant="outline"
                           size="sm"
                           className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
@@ -263,7 +275,11 @@ export default function Cursos() {
               {cursosInativos.map((curso) => {
                 const professor = professores.find(p => p.id === curso.professorId);
                 return (
-                  <Card key={curso.id} className="p-6 hover:shadow-lg transition-all opacity-75">
+                  <Card 
+                    key={curso.id} 
+                    onClick={() => navigate(`/curso/${curso.id}`)}
+                    className="p-6 hover:shadow-lg transition-all opacity-75 cursor-pointer"
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
@@ -298,14 +314,20 @@ export default function Cursos() {
                       
                       <div className="flex flex-col space-y-2 ml-4">
                         <Button
-                          onClick={() => handleOpenDialog(curso)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenDialog(curso);
+                          }}
                           variant="outline"
                           size="sm"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
-                          onClick={() => handleDelete(curso.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(curso.id);
+                          }}
                           variant="outline"
                           size="sm"
                           className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
