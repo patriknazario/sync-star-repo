@@ -40,22 +40,22 @@ export function EstadoCard({
   return (
     <button
       onClick={onClick}
-      className={`w-full transition-all duration-200 hover:scale-105 ${
+      className={`w-full transition-all duration-200 hover:scale-105 group ${
         isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
       }`}
     >
       <Card className={`p-4 h-24 flex flex-col justify-between ${getBackgroundColor()} border-2 ${
         isSelected ? 'border-primary' : 'border-transparent'
-      }`}>
+      } group-hover:bg-accent group-hover:border-accent`}>
         <div className="flex items-start justify-between">
-          <span className={`text-2xl font-bold ${getTextColor()}`}>{sigla}</span>
+          <span className={`text-2xl font-bold ${getTextColor()} group-hover:text-accent-foreground`}>{sigla}</span>
           {totalCursos > 0 && (
             <Badge variant="secondary" className="text-xs">
               {totalCursos}
             </Badge>
           )}
         </div>
-        <span className={`text-xs font-medium ${getTextColor()} line-clamp-1`}>
+        <span className={`text-xs font-medium ${getTextColor()} group-hover:text-accent-foreground line-clamp-1`}>
           {nome}
         </span>
       </Card>
