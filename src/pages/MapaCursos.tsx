@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, DollarSign, TrendingUp, MapPin, Search } from 'lucide-react';
-import { BrasilMap } from '@/components/mapa/BrasilMap';
+import { EstadosGrid } from '@/components/mapa/EstadosGrid';
 import { EstadoModal } from '@/components/mapa/EstadoModal';
 import { EstadoTopRanking } from '@/components/mapa/EstadoTopRanking';
 import { ConcentracaoRegional } from '@/components/mapa/ConcentracaoRegional';
@@ -259,27 +259,25 @@ export default function MapaCursos() {
 
         {/* Layout Principal */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Mapa (70%) */}
+          {/* Grid de Estados (70%) */}
           <div className="lg:col-span-2 space-y-4">
             <Card className="p-6">
-              <div className="h-[600px]">
-                <BrasilMap
-                  estadosData={estadosFiltrados}
-                  selectedState={selectedState}
-                  onSelectState={handleSelectState}
-                  maxCursos={maxCursos}
-                />
-              </div>
+              <EstadosGrid
+                estadosData={estadosFiltrados}
+                selectedState={selectedState}
+                onSelectState={handleSelectState}
+                maxCursos={maxCursos}
+              />
               
               {/* Legenda */}
-              <div className="flex items-center justify-center gap-4 mt-4 text-sm">
+              <div className="flex items-center justify-center gap-4 mt-6 text-sm">
                 <span className="text-muted-foreground">Escala de calor:</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-blue-200" />
+                  <div className="w-4 h-4 rounded bg-blue-200 dark:bg-blue-950" />
                   <span>Poucos cursos</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-blue-600" />
+                  <div className="w-4 h-4 rounded bg-blue-500 dark:bg-blue-600" />
                   <span>Muitos cursos</span>
                 </div>
               </div>
