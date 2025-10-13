@@ -2,9 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { AppProvider } from "@/contexts/AppContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Navbar } from "@/components/layout/Navbar";
+import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Cursos from "./pages/Cursos";
 import DetalheCurso from "./pages/DetalheCurso";
@@ -21,30 +24,43 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AppProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <div className="min-h-screen bg-background">
-            <Navbar />
+    <AuthProvider>
+      <AppProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/cursos" element={<Cursos />} />
-              <Route path="/curso/:id" element={<DetalheCurso />} />
-              <Route path="/professores" element={<Professores />} />
-              <Route path="/performance" element={<Performance />} />
-              <Route path="/analises" element={<Analises />} />
-              <Route path="/crm" element={<CRM />} />
-              <Route path="/relatorios" element={<Relatorios />} />
-              <Route path="/gestao-metas" element={<GestaoMetas />} />
-              <Route path="/mapa-cursos" element={<MapaCursos />} />
-              <Route path="*" element={<NotFound />} />
+              {/* Rota pública */}
+              <Route path="/auth" element={<Auth />} />
+              
+              {/* Rotas protegidas */}
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <div className="min-h-screen bg-background">
+                    <Navbar />
+                    <Routes>
+                      <Route index element={<Navigate to="/dashboard" replace />} />
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/cursos" element={<Cursos />} />
+                      <Route path="/curso/:id" element={<DetalheCurso />} />
+                      <Route path="/professores" element={<Professores />} />
+                      <Route path="/performance" element={<Performance />} />
+                      <Route path="/analises" element={<Analises />} />
+                      <Route path="/crm" element={<CRM />} />
+                      <Route path="/relatorios" element={<Relatorios />} />
+                      <Route path="/gestao-metas" element={<GestaoMetas />} />
+                      <Route path="/mapa-cursos" element={<MapaCursos />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </div>
+                </ProtectedRoute>
+              } />
             </Routes>
-          </div>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AppProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AppProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
