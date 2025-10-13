@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppProvider } from "@/contexts/AppContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -34,28 +34,31 @@ const App = () => (
               {/* Rota pública */}
               <Route path="/auth" element={<Auth />} />
               
-              {/* Rotas protegidas */}
+              {/* Layout com Navbar para rotas protegidas */}
               <Route path="/" element={
                 <ProtectedRoute>
                   <div className="min-h-screen bg-background">
                     <Navbar />
-                    <Routes>
-                      <Route index element={<Navigate to="/dashboard" replace />} />
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/cursos" element={<Cursos />} />
-                      <Route path="/curso/:id" element={<DetalheCurso />} />
-                      <Route path="/professores" element={<Professores />} />
-                      <Route path="/performance" element={<Performance />} />
-                      <Route path="/analises" element={<Analises />} />
-                      <Route path="/crm" element={<CRM />} />
-                      <Route path="/relatorios" element={<Relatorios />} />
-                      <Route path="/gestao-metas" element={<GestaoMetas />} />
-                      <Route path="/mapa-cursos" element={<MapaCursos />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
+                    <Outlet />
                   </div>
                 </ProtectedRoute>
-              } />
+              }>
+                {/* Rotas filhas */}
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="cursos" element={<Cursos />} />
+                <Route path="curso/:id" element={<DetalheCurso />} />
+                <Route path="professores" element={<Professores />} />
+                <Route path="performance" element={<Performance />} />
+                <Route path="analises" element={<Analises />} />
+                <Route path="crm" element={<CRM />} />
+                <Route path="relatorios" element={<Relatorios />} />
+                <Route path="gestao-metas" element={<GestaoMetas />} />
+                <Route path="mapa-cursos" element={<MapaCursos />} />
+              </Route>
+              
+              {/* 404 */}
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
