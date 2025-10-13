@@ -208,10 +208,6 @@ export function EstadoModal({
                         className="h-2"
                       />
                     </div>
-
-                    <Button className="w-full mt-3" variant="outline" size="sm">
-                      Link de Inscrição
-                    </Button>
                   </Card>
                 );
               })}

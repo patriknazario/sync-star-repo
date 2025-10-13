@@ -188,7 +188,7 @@ export default function MapaCursos() {
   const estadoSelecionado = selectedState ? estadosData.get(selectedState) : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="space-y-2">
@@ -226,7 +226,7 @@ export default function MapaCursos() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Calendar className="h-5 w-5 text-blue-500" />
+              <Calendar className="h-5 w-5 text-primary" />
               <p className="text-sm text-muted-foreground">Total de Cursos</p>
             </div>
             <p className="text-3xl font-bold">{metricas.totalCursos}</p>
@@ -234,7 +234,7 @@ export default function MapaCursos() {
 
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="h-5 w-5 text-green-500" />
+              <DollarSign className="h-5 w-5 text-success" />
               <p className="text-sm text-muted-foreground">Receita Prevista</p>
             </div>
             <p className="text-3xl font-bold">{formatCurrency(metricas.receitaTotal)}</p>
@@ -242,7 +242,7 @@ export default function MapaCursos() {
 
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-5 w-5 text-purple-500" />
+              <TrendingUp className="h-5 w-5 text-accent" />
               <p className="text-sm text-muted-foreground">Crescimento</p>
             </div>
             <p className="text-3xl font-bold text-green-600">{metricas.crescimento}%</p>
@@ -250,7 +250,7 @@ export default function MapaCursos() {
 
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <MapPin className="h-5 w-5 text-red-500" />
+              <MapPin className="h-5 w-5 text-primary" />
               <p className="text-sm text-muted-foreground">Estados Atendidos</p>
             </div>
             <p className="text-3xl font-bold">{metricas.estadosAtendidos}</p>
@@ -273,11 +273,11 @@ export default function MapaCursos() {
               <div className="flex items-center justify-center gap-4 mt-6 text-sm">
                 <span className="text-muted-foreground">Escala de calor:</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-blue-200 dark:bg-blue-950" />
+                  <div className="w-4 h-4 rounded bg-primary/20" />
                   <span>Poucos cursos</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-blue-500 dark:bg-blue-600" />
+                  <div className="w-4 h-4 rounded bg-primary" />
                   <span>Muitos cursos</span>
                 </div>
               </div>
