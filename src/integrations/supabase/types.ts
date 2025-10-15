@@ -301,6 +301,7 @@ export type Database = {
           email: string
           id: number
           meta_anual: number
+          meta_mensal: number
           nome: string
           telefone: string | null
           updated_at: string | null
@@ -312,6 +313,7 @@ export type Database = {
           email: string
           id?: number
           meta_anual?: number
+          meta_mensal?: number
           nome: string
           telefone?: string | null
           updated_at?: string | null
@@ -323,6 +325,7 @@ export type Database = {
           email?: string
           id?: number
           meta_anual?: number
+          meta_mensal?: number
           nome?: string
           telefone?: string | null
           updated_at?: string | null
