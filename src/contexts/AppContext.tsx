@@ -1,6 +1,20 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Curso, Lead, Professor, Vendedora, Cliente, MetaGlobal, TaxaComissao, cursos as initialCursos, leads as initialLeads, professores as initialProfessores, vendedoras as initialVendedoras, metasGlobais as initialMetasGlobais, taxasComissao as initialTaxasComissao } from '@/data/mockData';
-import { getInscricoesCurso } from '@/utils/calculations';
+import React, { createContext, useContext, ReactNode, useMemo } from 'react';
+import { Curso, Lead, Professor, Vendedora, Cliente, MetaGlobal, TaxaComissao } from '@/data/mockData';
+import { useCursos } from '@/hooks/useCursos';
+import { useLeads } from '@/hooks/useLeads';
+import { useProfessores } from '@/hooks/useProfessores';
+import { useVendedoras } from '@/hooks/useVendedoras';
+import { useMetasGlobais } from '@/hooks/useMetasGlobais';
+import { 
+  cursoDBToFrontend, 
+  cursoFrontendToDB,
+  leadDBToFrontend,
+  leadFrontendToDB,
+  professorDBToFrontend,
+  professorFrontendToDB,
+  vendedoraDBToFrontend,
+  metaGlobalDBToFrontend,
+} from '@/utils/adapters';
 
 interface AppContextType {
   cursos: Curso[];
@@ -15,30 +29,30 @@ interface AppContextType {
   getInscricoesCurso: (cursoId: number) => number;
   
   // Cursos
-  addCurso: (curso: Omit<Curso, 'id'>) => void;
-  updateCurso: (id: number, curso: Partial<Curso>) => void;
-  deleteCurso: (id: number) => void;
+  addCurso: (curso: Omit<Curso, 'id'>) => Promise<void>;
+  updateCurso: (id: number, curso: Partial<Curso>) => Promise<void>;
+  deleteCurso: (id: number) => Promise<void>;
   
   // Leads
-  addLead: (lead: Omit<Lead, 'id'>) => void;
-  updateLead: (id: number, lead: Partial<Lead>) => void;
-  deleteLead: (id: number) => void;
-  moveLeadStatus: (id: number, newStatus: Lead['status'], motivoPerda?: Lead['motivoPerda'], observacoes?: string) => void;
+  addLead: (lead: Omit<Lead, 'id'>) => Promise<void>;
+  updateLead: (id: number, lead: Partial<Lead>) => Promise<void>;
+  deleteLead: (id: number) => Promise<void>;
+  moveLeadStatus: (id: number, newStatus: Lead['status'], motivoPerda?: Lead['motivoPerda'], observacoes?: string) => Promise<void>;
   
   // Professores
-  addProfessor: (professor: Omit<Professor, 'id'>) => void;
-  updateProfessor: (id: number, professor: Partial<Professor>) => void;
-  deleteProfessor: (id: number) => void;
+  addProfessor: (professor: Omit<Professor, 'id'>) => Promise<void>;
+  updateProfessor: (id: number, professor: Partial<Professor>) => Promise<void>;
+  deleteProfessor: (id: number) => Promise<void>;
   
   // Vendedoras
-  updateVendedoraMeta: (id: number, metaMensal: number, metaAnual: number) => void;
+  updateVendedoraMeta: (id: number, metaMensal: number, metaAnual: number) => Promise<void>;
   
   // Meta Total
   setMetaTotalAnual: (meta: number) => void;
   
   // Metas Globais
   getMetaGlobalByAno: (ano: number) => MetaGlobal | undefined;
-  updateMetaGlobal: (ano: number, meta: Partial<MetaGlobal>) => void;
+  updateMetaGlobal: (ano: number, meta: Partial<MetaGlobal>) => Promise<void>;
   calcRealizadoAno: (ano: number) => number;
   
   // Comissões
@@ -53,46 +67,61 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'cgp-data';
-
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [cursos, setCursos] = useState<Curso[]>(() => {
-    const stored = localStorage.getItem(`${STORAGE_KEY}-cursos`);
-    return stored ? JSON.parse(stored) : initialCursos;
-  });
+  const [anoSelecionado, setAnoSelecionado] = React.useState<number>(2025);
+  
+  // Hooks do Supabase
+  const cursosHook = useCursos();
+  const leadsHook = useLeads();
+  const professoresHook = useProfessores();
+  const vendedorasHook = useVendedoras(anoSelecionado);
+  const metasGlobaisHook = useMetasGlobais();
+  
+  // Converter dados do Supabase para formato do frontend
+  const cursos = useMemo(() => 
+    cursosHook.cursos.map(cursoDBToFrontend), 
+    [cursosHook.cursos]
+  );
+  
+  const leads = useMemo(() => 
+    leadsHook.leads.map(leadDBToFrontend), 
+    [leadsHook.leads]
+  );
+  
+  const professores = useMemo(() => 
+    professoresHook.professores.map(professorDBToFrontend), 
+    [professoresHook.professores]
+  );
+  
+  const vendedoras = useMemo(() => 
+    vendedorasHook.vendedoras.map(vendedoraDBToFrontend), 
+    [vendedorasHook.vendedoras]
+  );
+  
+  const metasGlobais = useMemo(() => 
+    metasGlobaisHook.metasGlobais.map(metaGlobalDBToFrontend), 
+    [metasGlobaisHook.metasGlobais]
+  );
 
-  const [leads, setLeads] = useState<Lead[]>(() => {
-    const stored = localStorage.getItem(`${STORAGE_KEY}-leads`);
-    return stored ? JSON.parse(stored) : initialLeads;
-  });
+  // Taxas de comissão (mantido em memória por enquanto - pode ser migrado depois)
+  const [taxasComissao] = React.useState<TaxaComissao[]>([
+    { id: 1, taxa: 5.0, tipo: 'Padrão' }
+  ]);
 
-  const [professores, setProfessores] = useState<Professor[]>(() => {
-    const stored = localStorage.getItem(`${STORAGE_KEY}-professores`);
-    return stored ? JSON.parse(stored) : initialProfessores;
-  });
+  // Clientes derivados dos leads
+  const clientes = useMemo(() => extractClientesFromLeads(leads), [leads]);
+  
+  // Meta total calculada
+  const metaTotalAnual = useMemo(() => 
+    vendedoras.reduce((sum, v) => sum + v.metaAnual, 0), 
+    [vendedoras]
+  );
 
-  const [vendedoras, setVendedoras] = useState<Vendedora[]>(() => {
-    const stored = localStorage.getItem(`${STORAGE_KEY}-vendedoras`);
-    return stored ? JSON.parse(stored) : initialVendedoras;
-  });
-
-  const [metasGlobais, setMetasGlobais] = useState<MetaGlobal[]>(() => {
-    const stored = localStorage.getItem(`${STORAGE_KEY}-metas-globais`);
-    return stored ? JSON.parse(stored) : initialMetasGlobais;
-  });
-
-  const [taxasComissao, setTaxasComissao] = useState<TaxaComissao[]>(() => {
-    const stored = localStorage.getItem(`${STORAGE_KEY}-taxas-comissao`);
-    return stored ? JSON.parse(stored) : initialTaxasComissao;
-  });
-
-  const [anoSelecionado, setAnoSelecionado] = useState<number>(2025);
-
-  // Clientes não são mais armazenados, são derivados dos leads
-  const extractClientesFromLeads = (): Cliente[] => {
+  // Função para extrair clientes dos leads
+  function extractClientesFromLeads(leadsData: Lead[]): Cliente[] {
     const clientesMap = new Map<string, Cliente>();
     
-    leads
+    leadsData
       .filter(l => l.status === 'Inscrição Realizada')
       .forEach(lead => {
         const key = lead.orgao.toLowerCase();
@@ -134,148 +163,87 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       });
     
-    // Identificar clientes recorrentes (2+ cursos)
     const clientes = Array.from(clientesMap.values());
     clientes.forEach(cliente => {
       cliente.recorrente = cliente.historicoCursos.length >= 2;
     });
     
     return clientes;
-  };
+  }
 
-  const clientes = extractClientesFromLeads();
-
-  // Meta total é calculada dinamicamente a partir das metas individuais
-  const metaTotalAnual = vendedoras.reduce((sum, v) => sum + v.metaAnual, 0);
-
-  // Persist to localStorage
-  useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}-cursos`, JSON.stringify(cursos));
-  }, [cursos]);
-
-  useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}-leads`, JSON.stringify(leads));
-  }, [leads]);
-
-  useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}-professores`, JSON.stringify(professores));
-  }, [professores]);
-
-  useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}-vendedoras`, JSON.stringify(vendedoras));
-  }, [vendedoras]);
-
-  useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}-metas-globais`, JSON.stringify(metasGlobais));
-  }, [metasGlobais]);
-
-  useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}-taxas-comissao`, JSON.stringify(taxasComissao));
-  }, [taxasComissao]);
-
-  // Clientes não são mais persistidos pois são derivados dinamicamente
-
-  // Função para obter inscrições de um curso dinamicamente
-  const getCursoInscricoes = (cursoId: number): number => {
-    return getInscricoesCurso(leads, cursoId);
+  // Função para obter inscrições de um curso
+  const getInscricoesCurso = (cursoId: number): number => {
+    return leads
+      .filter(l => l.cursoId === cursoId && l.status === 'Inscrição Realizada')
+      .reduce((sum, l) => sum + l.quantidadeInscricoes, 0);
   };
 
   // Cursos
-  const addCurso = (curso: Omit<Curso, 'id'>) => {
-    const newCurso = { ...curso, id: Date.now() };
-    setCursos([...cursos, newCurso]);
+  const addCurso = async (curso: Omit<Curso, 'id'>) => {
+    await cursosHook.addCurso(cursoFrontendToDB(curso) as any);
   };
 
-  const updateCurso = (id: number, updates: Partial<Curso>) => {
-    setCursos(cursos.map(c => c.id === id ? { ...c, ...updates } : c));
+  const updateCurso = async (id: number, updates: Partial<Curso>) => {
+    await cursosHook.updateCurso(id, cursoFrontendToDB(updates) as any);
   };
 
-  const deleteCurso = (id: number) => {
-    setCursos(cursos.filter(c => c.id !== id));
-    // Remove leads relacionados
-    setLeads(leads.filter(l => l.cursoId !== id));
+  const deleteCurso = async (id: number) => {
+    await cursosHook.deleteCurso(id);
   };
 
   // Leads
-  const addLead = (lead: Omit<Lead, 'id'>) => {
-    const newLead = { ...lead, id: Date.now() };
-    setLeads([...leads, newLead]);
+  const addLead = async (lead: Omit<Lead, 'id'>) => {
+    await leadsHook.addLead(leadFrontendToDB(lead) as any);
   };
 
-  const updateLead = (id: number, updates: Partial<Lead>) => {
-    setLeads(prevLeads => {
-      return prevLeads.map(l => {
-        if (l.id === id) {
-          const oldLead = l;
-          const newLead = { ...l, ...updates };
-          
-          // Se mudou status de/para "Inscrição Realizada", recalcular será automático
-          // pois usamos getInscricoesCurso que lê o estado atual
-          
-          return newLead;
-        }
-        return l;
-      });
-    });
+  const updateLead = async (id: number, updates: Partial<Lead>) => {
+    await leadsHook.updateLead(id, leadFrontendToDB(updates) as any);
   };
 
-  const deleteLead = (id: number) => {
-    setLeads(leads.filter(l => l.id !== id));
+  const deleteLead = async (id: number) => {
+    await leadsHook.deleteLead(id);
   };
 
-  const moveLeadStatus = (id: number, newStatus: Lead['status'], motivoPerda?: Lead['motivoPerda'], observacoes?: string) => {
-    setLeads(prevLeads => {
-      return prevLeads.map(l => {
-        if (l.id === id) {
-          const updates: Partial<Lead> = { status: newStatus };
-          
-          if (newStatus === 'Inscrição Realizada') {
-            updates.dataConversao = new Date().toISOString().split('T')[0];
-            updates.motivoPerda = undefined;
-            // Não precisa mais atualizar manualmente - getInscricoesCurso calcula dinamicamente
-          } else if (newStatus === 'Proposta Declinada') {
-            updates.motivoPerda = motivoPerda;
-            updates.observacoes = observacoes;
-          }
-          
-          return { ...l, ...updates };
-        }
-        return l;
-      });
-    });
+  const moveLeadStatus = async (
+    id: number, 
+    newStatus: Lead['status'], 
+    motivoPerda?: Lead['motivoPerda'], 
+    observacoes?: string
+  ) => {
+    const updates: Partial<Lead> = { status: newStatus };
+    
+    if (newStatus === 'Inscrição Realizada') {
+      updates.dataConversao = new Date().toISOString().split('T')[0];
+      updates.motivoPerda = undefined;
+    } else if (newStatus === 'Proposta Declinada') {
+      updates.motivoPerda = motivoPerda;
+      updates.observacoes = observacoes;
+    }
+    
+    await updateLead(id, updates);
   };
 
   // Professores
-  const addProfessor = (professor: Omit<Professor, 'id'>) => {
-    const newProfessor = { ...professor, id: Date.now() };
-    setProfessores([...professores, newProfessor]);
+  const addProfessor = async (professor: Omit<Professor, 'id'>) => {
+    await professoresHook.addProfessor(professorFrontendToDB(professor) as any);
   };
 
-  const updateProfessor = (id: number, updates: Partial<Professor>) => {
-    setProfessores(professores.map(p => p.id === id ? { ...p, ...updates } : p));
+  const updateProfessor = async (id: number, updates: Partial<Professor>) => {
+    await professoresHook.updateProfessor(id, professorFrontendToDB(updates) as any);
   };
 
-  const deleteProfessor = (id: number) => {
-    setProfessores(professores.filter(p => p.id !== id));
+  const deleteProfessor = async (id: number) => {
+    await professoresHook.deleteProfessor(id);
   };
 
   // Vendedoras
-  const updateVendedoraMeta = (id: number, metaMensal: number, metaAnual: number) => {
-    setVendedoras(vendedoras.map(v => v.id === id ? { ...v, metaMensal, metaAnual } : v));
-    // metaTotalAnual é recalculado automaticamente como campo derivado
+  const updateVendedoraMeta = async (id: number, metaMensal: number, metaAnual: number) => {
+    await vendedorasHook.updateVendedoraMeta(id, metaMensal, metaAnual);
   };
 
   const setMetaTotalAnual = (meta: number) => {
-    // Distribuir a meta proporcionalmente entre as vendedoras
-    const totalAtual = vendedoras.reduce((sum, v) => sum + v.metaAnual, 0);
-    if (totalAtual === 0) return;
-    
-    const fator = meta / totalAtual;
-    setVendedoras(vendedoras.map(v => ({
-      ...v,
-      metaAnual: Math.round(v.metaAnual * fator),
-      metaMensal: Math.round((v.metaAnual * fator) / 12)
-    })));
+    // Distribuir proporcionalmente (implementação futura se necessário)
+    console.warn('setMetaTotalAnual não implementado com Supabase ainda');
   };
 
   // Metas Globais
@@ -283,16 +251,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return metasGlobais.find(m => m.ano === ano);
   };
 
-  const updateMetaGlobal = (ano: number, updates: Partial<MetaGlobal>) => {
-    setMetasGlobais(metas => {
-      const existingIndex = metas.findIndex(m => m.ano === ano);
-      if (existingIndex >= 0) {
-        const updated = [...metas];
-        updated[existingIndex] = { ...updated[existingIndex], ...updates };
-        return updated;
-      } else {
-        return [...metas, { ano, valor: 0, descricao: '', ...updates }];
-      }
+  const updateMetaGlobal = async (ano: number, updates: Partial<MetaGlobal>) => {
+    await metasGlobaisHook.updateMetaGlobal(ano, {
+      meta_faturamento: updates.valor,
     });
   };
 
@@ -305,48 +266,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .reduce((sum, l) => sum + (l.valorNegociado ?? l.valorProposta), 0);
   };
 
-  // Comissões
+  // Comissões (mantido em memória)
   const addTaxaComissao = (taxa: Omit<TaxaComissao, 'id'>) => {
-    const newTaxa = { ...taxa, id: Date.now() };
-    setTaxasComissao([...taxasComissao, newTaxa]);
+    console.warn('addTaxaComissao não implementado com Supabase ainda');
   };
 
   const updateTaxaComissao = (id: number, updates: Partial<TaxaComissao>) => {
-    setTaxasComissao(taxas => taxas.map(t => t.id === id ? { ...t, ...updates } : t));
+    console.warn('updateTaxaComissao não implementado com Supabase ainda');
   };
 
   const deleteTaxaComissao = (id: number) => {
-    setTaxasComissao(taxas => taxas.filter(t => t.id !== id));
+    console.warn('deleteTaxaComissao não implementado com Supabase ainda');
   };
 
   const getTaxaComissao = (vendedoraId: number, cursoId: number): number => {
-    // Hierarquia: Específica (vendedora + curso) > Por vendedora > Por curso > Padrão
-    
-    // 1. Específica (vendedora + curso)
-    let taxa = taxasComissao.find(t => 
-      t.vendedoraId === vendedoraId && t.cursoId === cursoId
-    );
-    
-    // 2. Por vendedora (qualquer curso)
-    if (!taxa) {
-      taxa = taxasComissao.find(t => 
-        t.vendedoraId === vendedoraId && !t.cursoId
-      );
-    }
-    
-    // 3. Por curso (qualquer vendedora)
-    if (!taxa) {
-      taxa = taxasComissao.find(t => 
-        t.cursoId === cursoId && !t.vendedoraId
-      );
-    }
-    
-    // 4. Padrão
-    if (!taxa) {
-      taxa = taxasComissao.find(t => !t.vendedoraId && !t.cursoId);
-    }
-    
-    return taxa?.taxa ?? 0;
+    return 5.0; // Taxa padrão por enquanto
   };
 
   const value = {
@@ -359,7 +293,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     metasGlobais,
     taxasComissao,
     anoSelecionado,
-    getInscricoesCurso: getCursoInscricoes,
+    getInscricoesCurso,
     addCurso,
     updateCurso,
     deleteCurso,
