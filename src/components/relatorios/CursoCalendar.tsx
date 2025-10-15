@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CursoDetailModal } from './CursoDetailModal';
+import { ptBR } from 'date-fns/locale';
 
 interface CursoCalendarProps {
   cursos: Curso[];
@@ -74,27 +75,30 @@ export function CursoCalendar({ cursos }: CursoCalendarProps) {
     hasCurso: 'relative font-bold',
   };
 
-  const DayContent = (date: Date) => {
+  const DayContent = ({ date }: { date: Date }) => {
     const key = date.toISOString().split('T')[0];
     const cursosNoDia = cursosPorData.get(key) || [];
     
-    if (cursosNoDia.length === 0) return null;
-
-    // Mostrar apenas o status do primeiro curso para não poluir
-    const primeiroStatus = cursosNoDia[0].status;
-
     return (
-      <div className="relative w-full h-full flex flex-col items-center justify-center">
-        <span className="relative z-10">{date.getDate()}</span>
-        <Badge 
-          variant="secondary" 
-          className={cn(
-            "absolute bottom-0 text-[8px] px-1 h-3 pointer-events-none",
-            getStatusColor(primeiroStatus)
-          )}
-        >
-          {cursosNoDia.length}
-        </Badge>
+      <div className="relative h-full w-full flex items-center justify-center group cursor-pointer">
+        <span className="text-sm font-medium transition-colors group-hover:text-primary">
+          {date.getDate()}
+        </span>
+        
+        {cursosNoDia.length > 0 && (
+          <>
+            <Badge 
+              variant="secondary" 
+              className={cn(
+                "absolute -bottom-1 text-[10px] px-1.5 h-4 pointer-events-none font-semibold transition-transform group-hover:scale-110",
+                getStatusColor(cursosNoDia[0].status)
+              )}
+            >
+              {cursosNoDia.length}
+            </Badge>
+            <div className="absolute inset-0 rounded-md ring-2 ring-primary/20 pointer-events-none" />
+          </>
+        )}
       </div>
     );
   };
@@ -110,15 +114,25 @@ export function CursoCalendar({ cursos }: CursoCalendarProps) {
   return (
     <div className="space-y-4">
       {/* Controles de navegação */}
-      <div className="flex items-center justify-between">
-        <Button variant="outline" size="sm" onClick={handlePreviousMonth}>
-          <ChevronLeft className="h-4 w-4" />
+      <div className="flex items-center justify-between px-2">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={handlePreviousMonth}
+          className="hover:bg-primary/10"
+        >
+          <ChevronLeft className="h-5 w-5" />
         </Button>
-        <h3 className="text-lg font-semibold">
+        <h3 className="text-xl font-bold capitalize">
           {selectedMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
         </h3>
-        <Button variant="outline" size="sm" onClick={handleNextMonth}>
-          <ChevronRight className="h-4 w-4" />
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={handleNextMonth}
+          className="hover:bg-primary/10"
+        >
+          <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
 
@@ -129,12 +143,13 @@ export function CursoCalendar({ cursos }: CursoCalendarProps) {
         onSelect={handleDateSelect}
         month={selectedMonth}
         onMonthChange={setSelectedMonth}
+        locale={ptBR}
         modifiers={modifiers}
         modifiersClassNames={modifiersClassNames}
         components={{
-          Day: ({ date }) => DayContent(date),
+          Day: ({ date }) => DayContent({ date }),
         }}
-        className="rounded-md border"
+        className="rounded-lg border-0 w-full pointer-events-auto"
       />
 
       {/* Legendas */}
