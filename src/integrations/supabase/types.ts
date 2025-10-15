@@ -17,48 +17,54 @@ export type Database = {
       cursos: {
         Row: {
           carga_horaria: number
-          cidade: string
+          cidade: string | null
           created_at: string | null
           data_inicio: string
           data_termino: string
           descricao: string | null
-          estado: string
-          id: string
-          professor_id: string | null
-          status: Database["public"]["Enums"]["curso_status"] | null
-          tema: string
+          estado: string | null
+          id: number
+          meta_inscricoes: number
+          modalidade: Database["public"]["Enums"]["modalidade"]
+          nome: string
+          professor_id: number | null
+          status: Database["public"]["Enums"]["curso_status"]
           updated_at: string | null
-          valor_inscricao: number
+          valor_total: number
         }
         Insert: {
-          carga_horaria: number
-          cidade: string
+          carga_horaria?: number
+          cidade?: string | null
           created_at?: string | null
           data_inicio: string
           data_termino: string
           descricao?: string | null
-          estado: string
-          id?: string
-          professor_id?: string | null
-          status?: Database["public"]["Enums"]["curso_status"] | null
-          tema: string
+          estado?: string | null
+          id?: number
+          meta_inscricoes?: number
+          modalidade?: Database["public"]["Enums"]["modalidade"]
+          nome: string
+          professor_id?: number | null
+          status?: Database["public"]["Enums"]["curso_status"]
           updated_at?: string | null
-          valor_inscricao: number
+          valor_total?: number
         }
         Update: {
           carga_horaria?: number
-          cidade?: string
+          cidade?: string | null
           created_at?: string | null
           data_inicio?: string
           data_termino?: string
           descricao?: string | null
-          estado?: string
-          id?: string
-          professor_id?: string | null
-          status?: Database["public"]["Enums"]["curso_status"] | null
-          tema?: string
+          estado?: string | null
+          id?: number
+          meta_inscricoes?: number
+          modalidade?: Database["public"]["Enums"]["modalidade"]
+          nome?: string
+          professor_id?: number | null
+          status?: Database["public"]["Enums"]["curso_status"]
           updated_at?: string | null
-          valor_inscricao?: number
+          valor_total?: number
         }
         Relationships: [
           {
@@ -72,70 +78,61 @@ export type Database = {
       }
       leads: {
         Row: {
-          cidade: string
+          cargo: string | null
           created_at: string | null
-          curso_id: string
+          curso_id: number
           data_cadastro: string | null
           data_conversao: string | null
-          email: string | null
-          estado: string
-          id: string
-          motivo_perda: Database["public"]["Enums"]["motivo_perda"] | null
-          nome_responsavel: string
+          email_cliente: string
+          empresa: string | null
+          id: number
+          nome_cliente: string
           observacoes: string | null
-          orgao: string
-          quantidade_inscricoes: number | null
-          setor: string | null
-          status: Database["public"]["Enums"]["lead_status"] | null
-          telefone: string | null
+          quantidade_inscricoes: number
+          status: Database["public"]["Enums"]["lead_status"]
+          telefone_cliente: string | null
           updated_at: string | null
           valor_negociado: number | null
           valor_proposta: number
-          vendedora_id: string
+          vendedora_id: number
         }
         Insert: {
-          cidade: string
+          cargo?: string | null
           created_at?: string | null
-          curso_id: string
+          curso_id: number
           data_cadastro?: string | null
           data_conversao?: string | null
-          email?: string | null
-          estado: string
-          id?: string
-          motivo_perda?: Database["public"]["Enums"]["motivo_perda"] | null
-          nome_responsavel: string
+          email_cliente: string
+          empresa?: string | null
+          id?: number
+          nome_cliente: string
           observacoes?: string | null
-          orgao: string
-          quantidade_inscricoes?: number | null
-          setor?: string | null
-          status?: Database["public"]["Enums"]["lead_status"] | null
-          telefone?: string | null
-          updated_at?: string | null
-          valor_negociado?: number | null
-          valor_proposta: number
-          vendedora_id: string
-        }
-        Update: {
-          cidade?: string
-          created_at?: string | null
-          curso_id?: string
-          data_cadastro?: string | null
-          data_conversao?: string | null
-          email?: string | null
-          estado?: string
-          id?: string
-          motivo_perda?: Database["public"]["Enums"]["motivo_perda"] | null
-          nome_responsavel?: string
-          observacoes?: string | null
-          orgao?: string
-          quantidade_inscricoes?: number | null
-          setor?: string | null
-          status?: Database["public"]["Enums"]["lead_status"] | null
-          telefone?: string | null
+          quantidade_inscricoes?: number
+          status?: Database["public"]["Enums"]["lead_status"]
+          telefone_cliente?: string | null
           updated_at?: string | null
           valor_negociado?: number | null
           valor_proposta?: number
-          vendedora_id?: string
+          vendedora_id: number
+        }
+        Update: {
+          cargo?: string | null
+          created_at?: string | null
+          curso_id?: number
+          data_cadastro?: string | null
+          data_conversao?: string | null
+          email_cliente?: string
+          empresa?: string | null
+          id?: number
+          nome_cliente?: string
+          observacoes?: string | null
+          quantidade_inscricoes?: number
+          status?: Database["public"]["Enums"]["lead_status"]
+          telefone_cliente?: string | null
+          updated_at?: string | null
+          valor_negociado?: number | null
+          valor_proposta?: number
+          vendedora_id?: number
         }
         Relationships: [
           {
@@ -172,63 +169,54 @@ export type Database = {
         Row: {
           ano: number
           created_at: string | null
-          descricao: string | null
-          id: string
+          id: number
+          meta_faturamento: number
+          meta_inscricoes: number
           updated_at: string | null
-          valor: number
         }
         Insert: {
           ano: number
           created_at?: string | null
-          descricao?: string | null
-          id?: string
+          id?: number
+          meta_faturamento?: number
+          meta_inscricoes?: number
           updated_at?: string | null
-          valor: number
         }
         Update: {
           ano?: number
           created_at?: string | null
-          descricao?: string | null
-          id?: string
+          id?: number
+          meta_faturamento?: number
+          meta_inscricoes?: number
           updated_at?: string | null
-          valor?: number
         }
         Relationships: []
       }
       professores: {
         Row: {
-          areas: string[] | null
-          bio: string | null
           created_at: string | null
           email: string
-          foto: string | null
-          id: string
+          especialidade: string | null
+          id: number
           nome: string
-          redes_sociais: Json | null
           telefone: string | null
           updated_at: string | null
         }
         Insert: {
-          areas?: string[] | null
-          bio?: string | null
           created_at?: string | null
           email: string
-          foto?: string | null
-          id?: string
+          especialidade?: string | null
+          id?: number
           nome: string
-          redes_sociais?: Json | null
           telefone?: string | null
           updated_at?: string | null
         }
         Update: {
-          areas?: string[] | null
-          bio?: string | null
           created_at?: string | null
           email?: string
-          foto?: string | null
-          id?: string
+          especialidade?: string | null
+          id?: number
           nome?: string
-          redes_sociais?: Json | null
           telefone?: string | null
           updated_at?: string | null
         }
@@ -236,24 +224,27 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
-          email: string
+          email: string | null
           id: string
-          nome: string
+          nome: string | null
           updated_at: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
-          email: string
+          email?: string | null
           id: string
-          nome: string
+          nome?: string | null
           updated_at?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
-          email?: string
+          email?: string | null
           id?: string
-          nome?: string
+          nome?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -261,61 +252,26 @@ export type Database = {
       taxas_comissao: {
         Row: {
           created_at: string | null
-          curso_id: string | null
-          id: string
-          taxa: number
-          tipo: Database["public"]["Enums"]["taxa_tipo"]
+          id: number
+          nome: string
+          percentual: number
           updated_at: string | null
-          vendedora_id: string | null
         }
         Insert: {
           created_at?: string | null
-          curso_id?: string | null
-          id?: string
-          taxa: number
-          tipo: Database["public"]["Enums"]["taxa_tipo"]
+          id?: number
+          nome: string
+          percentual?: number
           updated_at?: string | null
-          vendedora_id?: string | null
         }
         Update: {
           created_at?: string | null
-          curso_id?: string | null
-          id?: string
-          taxa?: number
-          tipo?: Database["public"]["Enums"]["taxa_tipo"]
+          id?: number
+          nome?: string
+          percentual?: number
           updated_at?: string | null
-          vendedora_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "taxas_comissao_curso_id_fkey"
-            columns: ["curso_id"]
-            isOneToOne: false
-            referencedRelation: "cursos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "taxas_comissao_curso_id_fkey"
-            columns: ["curso_id"]
-            isOneToOne: false
-            referencedRelation: "view_stats_cursos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "taxas_comissao_vendedora_id_fkey"
-            columns: ["vendedora_id"]
-            isOneToOne: false
-            referencedRelation: "vendedoras"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "taxas_comissao_vendedora_id_fkey"
-            columns: ["vendedora_id"]
-            isOneToOne: false
-            referencedRelation: "view_performance_vendedoras"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -340,32 +296,35 @@ export type Database = {
       }
       vendedoras: {
         Row: {
+          ano: number
           created_at: string | null
           email: string
-          id: string
-          meta_anual: number | null
-          meta_mensal: number | null
+          id: number
+          meta_anual: number
           nome: string
+          telefone: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
+          ano?: number
           created_at?: string | null
           email: string
-          id?: string
-          meta_anual?: number | null
-          meta_mensal?: number | null
+          id?: number
+          meta_anual?: number
           nome: string
+          telefone?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
+          ano?: number
           created_at?: string | null
           email?: string
-          id?: string
-          meta_anual?: number | null
-          meta_mensal?: number | null
+          id?: number
+          meta_anual?: number
           nome?: string
+          telefone?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -375,56 +334,50 @@ export type Database = {
     Views: {
       view_performance_vendedoras: {
         Row: {
+          ano: number | null
+          cursos_atendidos: number | null
           email: string | null
-          faturamento_total: number | null
-          id: string | null
+          faturamento_realizado: number | null
+          id: number | null
+          inscricoes_realizadas: number | null
           leads_convertidos: number | null
           meta_anual: number | null
-          meta_mensal: number | null
           nome: string | null
-          taxa_conversao: number | null
-          total_inscricoes: number | null
           total_leads: number | null
         }
         Relationships: []
       }
       view_stats_cursos: {
         Row: {
-          cidade: string | null
           data_inicio: string | null
           data_termino: string | null
-          estado: string | null
-          faturamento: number | null
-          id: string | null
-          inscricoes: number | null
-          professor_nome: string | null
+          faturamento_realizado: number | null
+          id: number | null
+          inscricoes_realizadas: number | null
+          meta_inscricoes: number | null
+          nome: string | null
           status: Database["public"]["Enums"]["curso_status"] | null
-          tema: string | null
           total_leads: number | null
-          valor_inscricao: number | null
+          valor_total: number | null
         }
         Relationships: []
       }
     }
     Functions: {
       calc_realizado_ano: {
-        Args: { _ano: number }
+        Args: { ano_param: number }
         Returns: number
       }
       get_faturamento_curso: {
-        Args: { _curso_id: string }
+        Args: { curso_id_param: number }
         Returns: number
       }
       get_inscricoes_curso: {
-        Args: { _curso_id: string }
-        Returns: number
-      }
-      get_taxa_comissao: {
-        Args: { _curso_id: string; _vendedora_id: string }
+        Args: { curso_id_param: number }
         Returns: number
       }
       get_user_role: {
-        Args: Record<PropertyKey, never>
+        Args: { user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
       has_role: {
@@ -434,21 +387,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      app_role: "admin" | "vendedora" | "gerente" | "visualizador"
-      curso_status:
-        | "Planejado"
-        | "Inscrições Abertas"
-        | "Em Andamento"
-        | "Concluído"
-        | "Cancelado"
-      lead_status:
-        | "Proposta Enviada"
-        | "Inscrição Realizada"
-        | "Proposta Declinada"
-      motivo_perda: "Preço" | "Data do curso incompatível" | "Sem orçamento"
-      taxa_tipo: "Padrão" | "Específica"
+      app_role: "admin" | "gerente" | "vendedora" | "visualizador"
+      curso_status: "Planejado" | "Em Andamento" | "Concluído" | "Cancelado"
+      lead_status: "Proposta Enviada" | "Inscrição Realizada" | "Não Convertido"
+      modalidade: "Presencial" | "EAD" | "Híbrido"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -576,21 +524,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "vendedora", "gerente", "visualizador"],
-      curso_status: [
-        "Planejado",
-        "Inscrições Abertas",
-        "Em Andamento",
-        "Concluído",
-        "Cancelado",
-      ],
+      app_role: ["admin", "gerente", "vendedora", "visualizador"],
+      curso_status: ["Planejado", "Em Andamento", "Concluído", "Cancelado"],
       lead_status: [
         "Proposta Enviada",
         "Inscrição Realizada",
-        "Proposta Declinada",
+        "Não Convertido",
       ],
-      motivo_perda: ["Preço", "Data do curso incompatível", "Sem orçamento"],
-      taxa_tipo: ["Padrão", "Específica"],
+      modalidade: ["Presencial", "EAD", "Híbrido"],
     },
   },
 } as const
