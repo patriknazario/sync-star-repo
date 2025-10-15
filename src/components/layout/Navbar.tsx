@@ -14,13 +14,13 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: BarChart3 },
   { name: 'Cursos', href: '/cursos', icon: BookOpen },
-  { name: 'Professores', href: '/professores', icon: Users },
+  { name: 'Professor', href: '/professores', icon: Users },
   { name: 'Performance', href: '/performance', icon: TrendingUp },
   { name: 'Análises', href: '/analises', icon: LineChart },
   { name: 'CRM', href: '/crm', icon: UserCircle },
   { name: 'Relatórios', href: '/relatorios', icon: FileText },
-  { name: 'Gestão de Metas', href: '/gestao-metas', icon: Target },
-  { name: 'Mapa de Cursos', href: '/mapa-cursos', icon: Map },
+  { name: 'Metas', href: '/gestao-metas', icon: Target },
+  { name: 'Mapa', href: '/mapa-cursos', icon: Map },
 ];
 
 export function Navbar() {
