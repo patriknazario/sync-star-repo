@@ -1,15 +1,41 @@
 import { useApp } from '@/contexts/AppContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileDown, Calendar as CalendarIcon } from 'lucide-react';
+import { FileDown, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { useState } from 'react';
+import {
+  exportPerformanceVendas,
+  exportAnaliseRegiao,
+  exportAnaliseCurso,
+  exportComissoes,
+  exportPipeline,
+} from '@/utils/exportService';
+import { CursoCalendar } from '@/components/relatorios/CursoCalendar';
 
 export default function Relatorios() {
-  const { cursos, leads, getInscricoesCurso } = useApp();
+  const { cursos, leads, getInscricoesCurso, vendedoras, professores } = useApp();
+  const [loading, setLoading] = useState(false);
 
-  const handleExportRelatorio = (tipo: string) => {
-    toast.success(`Relatório de ${tipo} gerado com sucesso!`, {
-      description: 'O download começará em instantes',
+  const handleExport = async (tipo: string, exportFn: () => void) => {
+    setLoading(true);
+    try {
+      await exportFn();
+      toast.success(`Relatório de ${tipo} exportado com sucesso!`, {
+        description: 'O download foi iniciado',
+      });
+    } catch (error) {
+      toast.error(`Erro ao exportar relatório de ${tipo}`, {
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportGoogleCalendar = () => {
+    toast.info('Funcionalidade de exportação para Google Calendar em desenvolvimento', {
+      description: 'Em breve você poderá adicionar cursos ao seu calendário',
     });
   };
 
@@ -27,45 +53,62 @@ export default function Relatorios() {
             <h2 className="text-xl font-bold text-foreground mb-4">Exportar Relatórios</h2>
             <div className="space-y-3">
               <Button
-                onClick={() => handleExportRelatorio('Performance de Vendas')}
+                onClick={() =>
+                  handleExport('Performance de Vendas', () =>
+                    exportPerformanceVendas(vendedoras, leads, cursos)
+                  )
+                }
                 variant="outline"
                 className="w-full justify-start"
+                disabled={loading}
               >
                 <FileDown className="h-4 w-4 mr-2" />
                 Performance de Vendas
               </Button>
 
               <Button
-                onClick={() => handleExportRelatorio('Análise por Região')}
+                onClick={() =>
+                  handleExport('Análise por Região', () => exportAnaliseRegiao(cursos, leads))
+                }
                 variant="outline"
                 className="w-full justify-start"
+                disabled={loading}
               >
                 <FileDown className="h-4 w-4 mr-2" />
                 Análise por Região
               </Button>
 
               <Button
-                onClick={() => handleExportRelatorio('Análise por Curso')}
+                onClick={() =>
+                  handleExport('Análise por Curso', () => exportAnaliseCurso(cursos, leads))
+                }
                 variant="outline"
                 className="w-full justify-start"
+                disabled={loading}
               >
                 <FileDown className="h-4 w-4 mr-2" />
                 Análise por Curso
               </Button>
 
               <Button
-                onClick={() => handleExportRelatorio('Comissões')}
+                onClick={() =>
+                  handleExport('Comissões', () => exportComissoes(vendedoras, leads, cursos))
+                }
                 variant="outline"
                 className="w-full justify-start"
+                disabled={loading}
               >
                 <FileDown className="h-4 w-4 mr-2" />
                 Relatório de Comissões
               </Button>
 
               <Button
-                onClick={() => handleExportRelatorio('Pipeline')}
+                onClick={() =>
+                  handleExport('Pipeline de Receita', () => exportPipeline(leads, cursos, vendedoras))
+                }
                 variant="outline"
                 className="w-full justify-start"
+                disabled={loading}
               >
                 <FileDown className="h-4 w-4 mr-2" />
                 Pipeline de Receita
@@ -75,21 +118,14 @@ export default function Relatorios() {
 
           {/* Calendário */}
           <Card className="p-6">
-            <h2 className="text-xl font-bold text-foreground mb-4">Calendário de Cursos</h2>
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <CalendarIcon className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground mb-4">
-                  Visualização de calendário em desenvolvimento
-                </p>
-                <Button
-                  onClick={() => toast.info('Funcionalidade em desenvolvimento')}
-                  variant="outline"
-                >
-                  Exportar para Google Calendar
-                </Button>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-foreground">Calendário de Cursos</h2>
+              <Button onClick={handleExportGoogleCalendar} variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar para Google Calendar
+              </Button>
             </div>
+            <CursoCalendar cursos={cursos} />
           </Card>
         </div>
 
