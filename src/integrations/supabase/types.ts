@@ -397,7 +397,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "gerente" | "vendedora" | "visualizador"
-      curso_status: "Planejado" | "Em Andamento" | "Concluído" | "Cancelado"
+      curso_status:
+        | "Planejado"
+        | "Inscrições Abertas"
+        | "Em Andamento"
+        | "Concluído"
+        | "Cancelado"
       lead_status: "Proposta Enviada" | "Inscrição Realizada" | "Não Convertido"
       modalidade: "Presencial" | "EAD" | "Híbrido"
     }
@@ -528,7 +533,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "gerente", "vendedora", "visualizador"],
-      curso_status: ["Planejado", "Em Andamento", "Concluído", "Cancelado"],
+      curso_status: [
+        "Planejado",
+        "Inscrições Abertas",
+        "Em Andamento",
+        "Concluído",
+        "Cancelado",
+      ],
       lead_status: [
         "Proposta Enviada",
         "Inscrição Realizada",

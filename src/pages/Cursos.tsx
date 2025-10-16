@@ -90,7 +90,7 @@ export default function Cursos() {
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.tema || !formData.cidade || !formData.estado || !formData.dataInicio || !formData.dataTermino) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
@@ -120,15 +120,16 @@ export default function Cursos() {
       }
     }
 
-    if (editingCurso) {
-      updateCurso(editingCurso.id, formData);
-      toast.success('Curso atualizado com sucesso!');
-    } else {
-      addCurso(formData as Omit<Curso, 'id'>);
-      toast.success('Curso criado com sucesso!');
+    try {
+      if (editingCurso) {
+        await updateCurso(editingCurso.id, formData);
+      } else {
+        await addCurso(formData as Omit<Curso, 'id'>);
+      }
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error('Erro ao salvar curso:', error);
     }
-    
-    setIsDialogOpen(false);
   };
 
   const handleDelete = (id: number) => {

@@ -15,7 +15,7 @@ export function cursoDBToFrontend(curso: Tables<'cursos'>): Curso {
     cargaHoraria: curso.carga_horaria,
     valorInscricao: Number(curso.valor_total),
     descricao: curso.descricao || '',
-    status: mapCursoStatus(curso.status),
+    status: curso.status as Curso['status'],
   };
 }
 
@@ -30,7 +30,7 @@ export function cursoFrontendToDB(curso: Partial<Curso>): Partial<Tables<'cursos
     carga_horaria: curso.cargaHoraria,
     valor_total: curso.valorInscricao,
     descricao: curso.descricao,
-    status: curso.status as any,
+    status: mapCursoStatusToDB(curso.status) as any,
   };
 }
 
@@ -119,15 +119,14 @@ export function metaGlobalDBToFrontend(meta: Tables<'metas_globais'>): MetaGloba
   };
 }
 
-// Status mapping
+// Status mapping - Mapeamento direto após adicionar "Inscrições Abertas" ao enum
 function mapCursoStatus(status: string): Curso['status'] {
-  const statusMap: Record<string, Curso['status']> = {
-    'Planejado': 'Planejado',
-    'Em Andamento': 'Inscrições Abertas',
-    'Concluído': 'Concluído',
-    'Cancelado': 'Cancelado',
-  };
-  return statusMap[status] || 'Planejado';
+  return status as Curso['status'];
+}
+
+function mapCursoStatusToDB(status: Curso['status'] | undefined): string {
+  if (!status) return 'Planejado';
+  return status;
 }
 
 function mapLeadStatus(status: string): Lead['status'] {

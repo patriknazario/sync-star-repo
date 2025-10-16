@@ -39,7 +39,7 @@ export function useVendedoras(ano?: number) {
         .update({ meta_mensal, meta_anual })
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return data;
